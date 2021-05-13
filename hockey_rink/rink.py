@@ -634,8 +634,7 @@ class NWHLRink(NHLRink):
             "center_circle": {"thickness": 2, "color": "#003366", "zorder": 12},
             "center_dot": {"visible": False},
             "logo": {"class": rf.CircularImage,
-                     "path": "https://github.com/the-bucketless/hockey_rink/blob/master/images/nwhl_logo.png",
-                     "radius": center_radius,
+                     "path": "images/nwhl_logo.png", "radius": center_radius,
                      "is_constrained": False, "zorder": 11}
         }
 

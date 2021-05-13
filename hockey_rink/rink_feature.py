@@ -20,6 +20,8 @@ from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
 import numpy as np
+from PIL import Image
+import requests
 
 
 class RinkFeature(ABC):

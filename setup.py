@@ -24,4 +24,5 @@ setup(
     packages=["hockey_rink"],
     install_requires=["matplotlib", "numpy", "scipy"],
     zip_safe=False,
+    include_package_data=True,
 )
