@@ -4,10 +4,10 @@
 
 A Python library for plotting hockey rinks with Matplotlib.
 
-##Installation
+## Installation
 ```pip install hockey_rink```
 
-##Current Rinks
+## Current Rinks
 The following shows the custom rinks currently available for plotting.
 
 ```
@@ -27,7 +27,7 @@ axs[2] = nwhl_rink.draw(ax=axs[2])
 
 The NWHL logo comes from [the NWHL site](https://www.nwhl.zone/news/nwhl-unveils-isobel-cup-logo-for-2021-season).
 
-##Customization
+## Customization
 There is also room for customization.  The image at the top was created as follows:  
   
 ```rink = Rink(rotation=45, boards={"length": 150, "width": 150, "radius": 75})```
@@ -40,7 +40,7 @@ provides an example of this by inheriting from RinkCircle.
 If a custom feature is to be constrained to only display within the rink, the returned object needs to have a 
 set_clip_path method.
 
-##Plots
+## Plots
 There are currently wrappers available for the following Matplotlib plots:  
     - plot  
     - scatter  
@@ -66,7 +66,7 @@ ie) ```hexbin(x, y, values)``` will throw an error.
 
 The correct call is ```hexbin(x, y, values=values)```
 
-##Examples
+## Examples
 
 Let's look at some NWHL data via the [Big Data Cup](https://www.stathletes.com/big-data-cup/).
 
@@ -130,10 +130,10 @@ rink.hexbin(shots.x, shots.y, values=shots.goal, ax=axs[2], binsize=(8, 12), plo
 
 ![](examples/shooting-pct.png)
 
-##Inspiration
+## Inspiration
 This project was partly inspired by [mplsoccer](https://github.com/andrewRowlinson/mplsoccer).
 
 Hopefully, it can lower a barrier for someone looking to get involved in hockey analytics.
 
-##Contact
+## Contact
 You can find me on twitter [@the_bucketless](https://twitter.com/the_bucketless) or email me at thebucketless@protonmail.com if you'd like to get in touch.
