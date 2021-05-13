@@ -108,6 +108,7 @@ below the goal line.  We'll also throw in a colorbar for the contour plot.
 ```
 from hockey_rink import NHLRink
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 pbp = pd.read_csv("https://hockey-data.harryshomer.com/pbp/nhl_pbp20192020.csv.gz", compression="gzip")

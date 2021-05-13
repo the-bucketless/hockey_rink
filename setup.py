@@ -1,5 +1,4 @@
-import hockey_rink
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 with open("README.md") as readme_file:
@@ -7,7 +6,7 @@ with open("README.md") as readme_file:
 
 setup(
     name="hockey_rink",
-    version=hockey_rink.__version__,
+    version="0.1.1",
     description="A Python library for plotting hockey rinks with Matplotlib.",
     long_description_content_type="text/markdown",
     long_description=readme,
@@ -21,8 +20,7 @@ setup(
     author="The Bucketless",
     author_email="thebucketless@protonmail.com",
     license="GNU General Public License v3 (GPLv3)",
-    packages=["hockey_rink"],
+    packages=find_packages(),
     install_requires=["matplotlib", "numpy", "scipy"],
     zip_safe=False,
-    include_package_data=True,
 )

@@ -16,12 +16,15 @@ Currently available features are:
 """
 
 
+__all__ = ["RinkFeature", "Boards", "BoardsConstraint", "RinkRectangle",
+           "RinkCircle", "TrapezoidLine", "InnerDot", "FaceoffCircle",
+           "RinkL", "Crease", "Crossbar", "Net", "CircularImage"]
+
+
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
 import numpy as np
-from PIL import Image
-import requests
 
 
 class RinkFeature(ABC):
