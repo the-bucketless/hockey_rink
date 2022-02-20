@@ -81,7 +81,7 @@ game_df = df.loc[(df["Home Team"] == "Minnesota Whitecaps") & (df["Away Team"] =
 shots = game_df.loc[(game_df.Event.isin(["Shot", "Goal"]))]
 boston_shots = shots[shots.Team == "Boston Pride"]
 minnesota_shots = shots[shots.Team == "Minnesota Whitecaps"]
-rink = NWHLRink(x_shift=100, y_shift=42.5)
+rink = NWHLRink(x_shift=100, y_shift=42.5, nzone={"length": 50})
 ax = rink.draw()
 rink.scatter(boston_shots["X Coordinate"], boston_shots["Y Coordinate"])
 rink.scatter(200 - minnesota_shots["X Coordinate"], 85 - minnesota_shots["Y Coordinate"])
