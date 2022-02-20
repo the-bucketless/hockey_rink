@@ -309,7 +309,7 @@ class BaseRink(ABC):
                 The portion of the rink to display.  The entire rink is drawn regardless, display_range only
                 affects what is shown.
 
-                Only affects x-coordinates and can be used in conjuction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
                 xlim if provided.
 
                 If a rotation other than those resulting in the rink being drawn horizontal/vertical, coordinates

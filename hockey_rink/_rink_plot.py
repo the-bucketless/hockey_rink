@@ -53,7 +53,8 @@ class BaseRinkPlot(BaseRink):
                 mask = ((x < plot_xlim[0]) | (x > plot_xlim[1])
                         | (y < plot_ylim[0]) | (y > plot_ylim[1]))
 
-            if kwargs.get("is_constrained", True):
+            is_constrained = kwargs.get("is_constrained", True)
+            if is_constrained:
                 values = self._outside_rink_to_nan(x, y, values)
 
             mask = mask | np.isnan(x) | np.isnan(y) | np.isnan(values)
@@ -62,8 +63,13 @@ class BaseRinkPlot(BaseRink):
             y = y[~mask]
             values = values[~mask]
 
+            if not is_constrained:
+                plot_xlim = [min([*plot_xlim, *x]), max([*plot_xlim, *x])]
+                plot_ylim = [min([*plot_ylim, *y]), max([*plot_ylim, *y])]
+
             return plot_function(self, x, y, values=values,
-                                 plot_range=plot_range, plot_xlim=plot_xlim, plot_ylim=plot_ylim,
+                                 plot_range=plot_range,
+                                 plot_xlim=plot_xlim, plot_ylim=plot_ylim,
                                  **kwargs)
 
         return wrapper
@@ -93,6 +99,9 @@ class BaseRinkPlot(BaseRink):
                 args[i] = args[i] - (self.y_shift if is_y else self.x_shift)
 
             kwargs["transform"] = self._get_transform(kwargs["ax"])
+
+            # avoid cutting off markers when plotting outside of rink
+            kwargs["clip_on"] = kwargs.get("clip_on", kwargs.get("is_constrained", True))
 
             args = tuple(args)
 
@@ -129,6 +138,28 @@ class BaseRinkPlot(BaseRink):
         values[mask] = np.nan
 
         return values
+
+    def _update_display_range(self, x, y, ax):
+        """ Update xlim and ylim for plotted features not constrained to the rink.
+
+        Parameters:
+            x: array_like
+
+            y: array_like
+
+            ax: matplotlib Axes
+                Axes in which the features were plotted.
+        """
+
+        x, y = self.convert_xy(x, y)
+        curr_xlim = ax.get_xlim()
+        curr_ylim = ax.get_ylim()
+
+        full_x = [*curr_xlim, *x]
+        full_y = [*curr_ylim, *y]
+
+        ax.set_xlim(min(full_x), max(full_x))
+        ax.set_ylim(min(full_y), max(full_y))
 
     @staticmethod
     def binned_stat_2d(x, y, values, statistic="sum", xlim=None, ylim=None, binsize=1, bins=None):
@@ -237,6 +268,8 @@ class BaseRinkPlot(BaseRink):
 
         if is_constrained:
             self._constrain_plot(img, ax, kwargs["transform"])
+        else:
+            self._update_display_range(x, y, ax)
 
         return img
 
@@ -277,6 +310,8 @@ class BaseRinkPlot(BaseRink):
 
         if is_constrained:
             self._constrain_plot(img, ax, kwargs["transform"])
+        else:
+            self._update_display_range(x, y, ax)
 
         return img
 
@@ -336,6 +371,8 @@ class BaseRinkPlot(BaseRink):
 
         if is_constrained:
             self._constrain_plot(arrows, ax, kwargs["transform"])
+        else:
+            self._update_display_range([*x1, *x2], [*y1, *y2], ax)
 
         return arrows
 
@@ -343,7 +380,7 @@ class BaseRinkPlot(BaseRink):
     @_validate_values
     def hexbin(self, x, y, *, values=None, is_constrained=True, symmetrize=False,
                plot_range=None, plot_xlim=None, plot_ylim=None,
-               gridsize=None, binsize=1, zorder=2, ax=None, **kwargs):
+               gridsize=None, binsize=1, zorder=2, clip_on=True, ax=None, **kwargs):
         """ Wrapper for matplotlib hexbin function.
 
         Will plot to areas out of view when full ice surface is not displayed.
@@ -411,6 +448,12 @@ class BaseRinkPlot(BaseRink):
             zorder: float; default: 2
                 Determines which rink features the plot will draw over.
 
+            clip_on: bool; default: True
+                Whether the artist uses clipping.
+
+                Other plotting features will automatically be set to the same value as is_constrained, but doing
+                so can lead to odd results with hexbin.
+
             ax: matplotlib Axes; optional
                 Axes in which to draw the plot.  If not provided, will use the currently active Axes.
 
@@ -419,6 +462,9 @@ class BaseRinkPlot(BaseRink):
         Returns:
             matplotlib PolyCollection
         """
+
+        # setting clip_on to True can lead to odd results
+        kwargs["clip_on"] = kwargs.get("clip_on", True)
 
         try:
             iter(binsize)
@@ -433,6 +479,8 @@ class BaseRinkPlot(BaseRink):
 
         if is_constrained:
             self._constrain_plot(img, ax, kwargs["transform"])
+        else:
+            self._update_display_range(x, y, ax)
 
         return img
 
@@ -540,6 +588,8 @@ class BaseRinkPlot(BaseRink):
 
         if is_constrained:
             self._constrain_plot(img, ax, kwargs["transform"])
+        else:
+            self._update_display_range(x, y, ax)
 
         return img
 
@@ -661,6 +711,8 @@ class BaseRinkPlot(BaseRink):
 
         if is_constrained:
             self._constrain_plot(img.collections, ax, kwargs["transform"])
+        else:
+            self._update_display_range(x, y, ax)
 
         return img
 
