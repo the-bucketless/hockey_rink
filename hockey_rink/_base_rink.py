@@ -44,6 +44,7 @@ class BaseRink(ABC):
         self._boards_constraint = None
         self._half_nzone_length = 0
         self._blue_line_thickness = 0
+        self.alpha = None
 
     def _initialize_feature(self, params):
         """ Initialize a feature of the rink at each coordinate it's required.
@@ -60,6 +61,8 @@ class BaseRink(ABC):
 
         x_reflections = [False, True] if params.pop("reflect_x", False) else [False]
         y_reflections = [False, True] if params.pop("reflect_y", False) else [False]
+
+        params["alpha"] = params.get("alpha", self.alpha)
 
         for x in xs:
             for y in ys:
