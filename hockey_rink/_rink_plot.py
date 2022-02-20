@@ -235,6 +235,27 @@ class BaseRinkPlot(BaseRink):
 
         return stat, x_edge, y_edge
 
+    def constrain_plot(self, collection="all", ax=None):
+        """ Constrain a collection object to only display inside the boards.
+
+        Parameters:
+            collection: matplotlib collection or "all"; default: "all"
+                The collection to be constrained.
+
+                If "all", will constrain all collections found on the Axes.
+
+            ax: matplotlib Axes; optional
+                Axes in which to draw the plot.  If not provided, will use the currently active Axes.
+        """
+
+        ax = plt.gca() if ax is None else ax
+        transform = self._get_transform(ax)
+
+        if collection == "all":
+            collection = ax.collections
+
+        self._constrain_plot(collection, ax, transform)
+
     @_validate_plot
     def plot(self, x, y, *, is_constrained=True, zorder=20, ax=None, **kwargs):
         """ Wrapper for matplotlib plot function.
@@ -409,7 +430,7 @@ class BaseRinkPlot(BaseRink):
                 Restricts the portion of the rink that can be plotted to.  Does so by removing values outside of
                 the given range.
 
-                Only affects x-coordinates and can be used in conjuction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
                 xlim if provided.
 
                 "full": The entire length of the rink is displayed.
@@ -518,7 +539,7 @@ class BaseRinkPlot(BaseRink):
                 Restricts the portion of the rink that can be plotted to.  Does so by removing values outside of
                 the given range.
 
-                Only affects x-coordinates and can be used in conjuction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
                 xlim if provided.
 
                 "full": The entire length of the rink is displayed.
@@ -553,7 +574,7 @@ class BaseRinkPlot(BaseRink):
                     "min": the minimum of values for points within each bin.
                     "max": the maximum of values for points within each bin.
                     function: a user-defined function which takes a 1D array of values and outputs a
-                        single numberical statistic.
+                        single numerical statistic.
 
             binsize: float or (float, float); default: 1
                 The size of the bins for a given portion of the rink.
@@ -630,7 +651,7 @@ class BaseRinkPlot(BaseRink):
                 Restricts the portion of the rink that can be plotted to.  Does so by removing values outside of
                 the given range.
 
-                Only affects x-coordinates and can be used in conjuction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
                 xlim if provided.
 
                 "full": The entire length of the rink is displayed.
@@ -665,7 +686,7 @@ class BaseRinkPlot(BaseRink):
                     "min": the minimum of values for points within each bin.
                     "max": the maximum of values for points within each bin.
                     function: a user-defined function which takes a 1D array of values and outputs a
-                        single numberical statistic.
+                        single numerical statistic.
 
             binsize: float or (float, float); default: 1
                 The size of the bins for a given portion of the rink.
