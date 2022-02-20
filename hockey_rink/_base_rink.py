@@ -283,7 +283,6 @@ class BaseRink(ABC):
                         if self._feature_xlim is None:
                             self._feature_xlim = [np.min(feature_x), np.max(feature_x)]
                         else:
-                            print(self._feature_xlim)
                             self._feature_xlim = [min(self._feature_xlim[0], np.min(feature_x)),
                                                   max(self._feature_xlim[1], np.max(feature_x))]
 
