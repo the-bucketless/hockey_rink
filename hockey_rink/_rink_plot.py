@@ -235,23 +235,23 @@ class BaseRinkPlot(BaseRink):
 
         return stat, x_edge, y_edge
 
-    def constrain_plot(self, collection="all", ax=None):
+    def constrain_plot(self, ax=None, collection=None):
         """ Constrain a collection object to only display inside the boards.
 
         Parameters:
-            collection: matplotlib collection or "all"; default: "all"
-                The collection to be constrained.
-
-                If "all", will constrain all collections found on the Axes.
-
             ax: matplotlib Axes; optional
                 Axes in which to draw the plot.  If not provided, will use the currently active Axes.
+
+            collection: matplotlib collection or iterable of matplotlib collections; default: None
+                The collection to be constrained.
+
+                If None, will constrain all collections found on the Axes.
         """
 
         ax = plt.gca() if ax is None else ax
         transform = self._get_transform(ax)
 
-        if collection == "all":
+        if collection is None:
             collection = ax.collections
 
         self._constrain_plot(collection, ax, transform)
