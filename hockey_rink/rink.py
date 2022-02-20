@@ -295,7 +295,7 @@ class Rink(BaseRinkPlot):
         nzone = nzone or {}
         nzone_params = {
             "length": 50,
-            "visible": False,
+            "color": "white",
         }
         required_nzone = {
             "class": rf.RinkRectangle,
@@ -313,7 +313,7 @@ class Rink(BaseRinkPlot):
         ozone = ozone or {}
         ozone_length = half_length - self._half_nzone_length
         ozone_params = {
-            "visible": False,
+            "color": "white",
         }
         required_ozone = {
             "class": rf.RinkRectangle,
@@ -329,7 +329,7 @@ class Rink(BaseRinkPlot):
 
         dzone = dzone or {}
         dzone_params = {
-            "visible": False,
+            "color": "white",
         }
         required_dzone = {
             "class": rf.RinkRectangle,
@@ -633,7 +633,7 @@ class NWHLRink(NHLRink):
         center_radius = kwargs.get("center_circle", {}).get("radius", 15)
 
         nwhl_updates = {
-            "nzone": {"length": 60, "color": "#B266FF", "visible": True},
+            "nzone": {"length": 60, "color": "#B266FF"},
             "ref_circle": {"y": half_width},
             "center_circle": {"thickness": 2, "color": "#003366", "zorder": 12},
             "center_dot": {"visible": False},
