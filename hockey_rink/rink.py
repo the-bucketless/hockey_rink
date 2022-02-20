@@ -40,9 +40,14 @@ class Rink(BaseRinkPlot):
 
             The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
             align with the drawing, not to alter the drawing to align with the coordinates.
+
+        alpha: float; default: None
+            The alpha blending value, between 0 (transparent) and 1 (opaque).
+
+            If not None, will be used for all features of the rink that don't override it.
     """
 
-    def __init__(self, rotation=0, x_shift=0, y_shift=0,
+    def __init__(self, rotation=0, x_shift=0, y_shift=0, alpha=None,
                  line_thickness=1 / 6, line_color="red", line_zorder=5,
                  x_dot_to_lines=2, y_dot_to_lines=9 / 12,
                  boards=None, nzone=None, ozone=None, dzone=None,
@@ -124,6 +129,11 @@ class Rink(BaseRinkPlot):
 
                 The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
                 align with the drawing, not to alter the drawing to align with the coordinates.
+
+            alpha: float; default: None
+                The alpha blending value, between 0 (transparent) and 1 (opaque).
+
+                If not None, will be used for all features of the rink that don't override it.
 
             line_thickness: float; default: 1/6
                 Thickness of all the thin lines on the ice (eg the goal line and faceoff circles) if not
@@ -251,6 +261,8 @@ class Rink(BaseRinkPlot):
 
         self.x_shift = x_shift
         self.y_shift = y_shift
+
+        self.alpha = alpha
 
         self._features = []
         self._feature_xlim = None
