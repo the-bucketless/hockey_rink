@@ -619,10 +619,11 @@ class NHLRink(Rink):
 
 
 class NWHLRink(NHLRink):
-    """ Version of Rink class based off of the NWHL rink in the 2021 playoffs.
+    """ Version of Rink class based off of the NWHL rink in the 2021 playoffs (Herb Brooks).
 
     Includes additional features of "logo" for the logo at center ice and
-    "crease_notch" for the little notches inside the crease.
+    "crease_notch" for the little notches inside the crease.  Also, removes
+    the trapezoid and increases the size of the neutral zone.
 
     See Rink for full documentation.
     """
@@ -632,13 +633,18 @@ class NWHLRink(NHLRink):
         center_radius = kwargs.get("center_circle", {}).get("radius", 15)
 
         nwhl_updates = {
-            "nzone": {"color": "#B266FF", "visible": True},
+            "nzone": {"length": 60, "color": "#B266FF", "visible": True},
             "ref_circle": {"y": half_width},
             "center_circle": {"thickness": 2, "color": "#003366", "zorder": 12},
             "center_dot": {"visible": False},
-            "logo": {"class": rf.CircularImage,
-                     "path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
-                     "radius": center_radius, "is_constrained": False, "zorder": 11}
+            "trapezoid": {"visible": False},
+            "logo": {
+                "class": rf.CircularImage,
+                "path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
+                "radius": center_radius,
+                "is_constrained": False,
+                "zorder": 11
+            }
         }
 
         for k, v in nwhl_updates.items():
