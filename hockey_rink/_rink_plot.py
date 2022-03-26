@@ -151,7 +151,6 @@ class BaseRinkPlot(BaseRink):
                 Axes in which the features were plotted.
         """
 
-        x, y = self.convert_xy(x, y)
         curr_xlim = ax.get_xlim()
         curr_ylim = ax.get_ylim()
 
