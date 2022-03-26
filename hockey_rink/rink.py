@@ -7,7 +7,7 @@ from matplotlib.transforms import Affine2D
 import numpy as np
 
 
-__all__ = ["Rink", "NHLRink", "NWHLRink", "IIHFRink"]
+__all__ = ["Rink", "NHLRink", "NWHLRink", "IIHFRink", "BDCRink"]
 
 
 class Rink(BaseRinkPlot):
@@ -710,5 +710,20 @@ class IIHFRink(Rink):
 
         for k, v in iihf_updates.items():
             kwargs[k] = {**v, **kwargs.get(k, {})}
+
+        super().__init__(**kwargs)
+
+
+class BDCRink(IIHFRink):
+    """ Version of Rink class with dimensions based off of Big Data Cup 2022 coordinates.
+
+    This is the IIHF Rink with slight updates to the dimensions of the rink and
+    shifted x, y values by default.
+    """
+
+    def __init__(self, **kwargs):
+        kwargs["boards"] = kwargs.get("boards", {"length": 200, "width": 98})
+        kwargs["x_shift"] = kwargs.get("x_shift", 100)
+        kwargs["y_shift"] = kwargs.get("y_shift", 49)
 
         super().__init__(**kwargs)
