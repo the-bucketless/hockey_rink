@@ -714,15 +714,15 @@ class IIHFRink(Rink):
         super().__init__(**kwargs)
 
 
-class BDCRink(IIHFRink):
-    """ Version of Rink class with dimensions based off of Big Data Cup 2022 coordinates.
+class BDCRink(NHLRink):
+    """ Version of Rink class to match data for Big Data Cup 2022.
 
-    This is the IIHF Rink with slight updates to the dimensions of the rink and
-    shifted x, y values by default.
+    The 2022 Olympics used an NHL-sized rink, so the only updates we need are
+    removing the trapezoid and shifting the coordinates to match the data.
     """
 
     def __init__(self, **kwargs):
-        kwargs["boards"] = kwargs.get("boards", {"length": 200, "width": 98})
+        kwargs["trapezoid"] = kwargs.get("trapezoid", {"visible": False})
         kwargs["x_shift"] = kwargs.get("x_shift", 100)
         kwargs["y_shift"] = kwargs.get("y_shift", 49)
 

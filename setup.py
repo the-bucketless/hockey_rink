@@ -6,7 +6,7 @@ with open("README.md") as readme_file:
 
 setup(
     name="hockey_rink",
-    version="0.1.3",
+    version="0.1.5",
     description="A Python library for plotting hockey rinks with Matplotlib.",
     long_description_content_type="text/markdown",
     long_description=readme,
