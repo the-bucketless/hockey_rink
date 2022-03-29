@@ -724,6 +724,6 @@ class BDCRink(NHLRink):
     def __init__(self, **kwargs):
         kwargs["trapezoid"] = kwargs.get("trapezoid", {"visible": False})
         kwargs["x_shift"] = kwargs.get("x_shift", 100)
-        kwargs["y_shift"] = kwargs.get("y_shift", 49)
+        kwargs["y_shift"] = kwargs.get("y_shift", 42.5)
 
         super().__init__(**kwargs)
