@@ -184,6 +184,14 @@ class BaseRink(ABC):
 
         return param
 
+    def _rotate_xy(self, x, y):
+        """ Rotate x,y-coordinates with rink rotation. """
+        if self._rotation:
+            xy = self._rotation.transform(tuple(zip(x, y)))
+            return xy[:, 0], xy[:, 1]
+        else:
+            return x, y
+
     def convert_xy(self, x, y):
         """ Convert x,y-coordinates to the scale used for the rink. """
 
@@ -193,11 +201,7 @@ class BaseRink(ABC):
         x = np.ravel(x) - self.x_shift
         y = np.ravel(y) - self.y_shift
 
-        if self._rotation:
-            xy = self._rotation.transform(tuple(zip(x, y)))
-            return xy[:, 0], xy[:, 1]
-        else:
-            return x, y
+        return self._rotate_xy(x, y)
 
     def draw(self, ax=None, display_range="full", xlim=None, ylim=None, rotation=None):
         """ Draw the rink.

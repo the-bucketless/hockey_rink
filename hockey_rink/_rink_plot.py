@@ -151,6 +151,8 @@ class BaseRinkPlot(BaseRink):
                 Axes in which the features were plotted.
         """
 
+        x, y = self._rotate_xy(x, y)
+
         curr_xlim = ax.get_xlim()
         curr_ylim = ax.get_ylim()
 
@@ -160,9 +162,18 @@ class BaseRinkPlot(BaseRink):
         ax.set_xlim(min(full_x), max(full_x))
         ax.set_ylim(min(full_y), max(full_y))
 
+    def _bound_rink(self, x, y, plot_features, ax, transform, is_constrained, update_display_range):
+        """ Update board contraints and limits of plot. """
+
+        if is_constrained:
+            self._constrain_plot(plot_features, ax, transform)
+        else:
+            if update_display_range:
+                self._update_display_range(x, y, ax)
+
     @staticmethod
     def binned_stat_2d(x, y, values, statistic="sum", xlim=None, ylim=None, binsize=1, bins=None):
-        """ Use scipy to compute a bidimensional binned statistic.
+        """ Use scipy to compute a bi-dimensional binned statistic.
 
         Parameters:
             x: array_like
@@ -256,7 +267,7 @@ class BaseRinkPlot(BaseRink):
         self._constrain_plot(collection, ax, transform)
 
     @_validate_plot
-    def plot(self, x, y, *, is_constrained=True, zorder=20, ax=None, **kwargs):
+    def plot(self, x, y, *, is_constrained=True, update_display_range=False, zorder=20, ax=None, **kwargs):
         """ Wrapper for matplotlib plot function.
 
         Will plot to areas out of view when full ice surface is not displayed.
@@ -272,6 +283,10 @@ class BaseRinkPlot(BaseRink):
             is_constrained: bool; default: True
                 Indicates whether or not the plot is constrained to remain inside the boards.
 
+            update_display_range: bool; default: False
+                Indicates whether or not to update the display range when coordinates are outside
+                the given range. Only used when is_constrained is False.
+
             zorder: float; default: 20
                 Determines which rink features the plot will draw over.
 
@@ -285,16 +300,11 @@ class BaseRinkPlot(BaseRink):
         """
 
         img = ax.plot(x, y, zorder=zorder, **kwargs)
-
-        if is_constrained:
-            self._constrain_plot(img, ax, kwargs["transform"])
-        else:
-            self._update_display_range(x, y, ax)
-
+        self._bound_rink(x, y, img, ax, kwargs["transform"], is_constrained, update_display_range)
         return img
 
     @_validate_plot
-    def scatter(self, x, y, *, is_constrained=True, symmetrize=False,
+    def scatter(self, x, y, *, is_constrained=True, update_display_range=False, symmetrize=False,
                 zorder=20, ax=None, **kwargs):
         """ Wrapper for matplotlib scatter function.
 
@@ -308,11 +318,15 @@ class BaseRinkPlot(BaseRink):
 
             y: array_like
 
-            symmetrize: bool; default: False
-                Indicates whether or not to reflect the coordinates across the y-axis.
-
             is_constrained: bool; default: True
                 Indicates whether or not the plot is constrained to remain inside the boards.
+
+            update_display_range: bool; default: False
+                Indicates whether or not to update the display range when coordinates are outside
+                the given range. Only used when is_constrained is False.
+
+            symmetrize: bool; default: False
+                Indicates whether or not to reflect the coordinates across the y-axis.
 
             zorder: float; default: 20
                 Determines which rink features the plot will draw over.
@@ -327,16 +341,11 @@ class BaseRinkPlot(BaseRink):
         """
 
         img = ax.scatter(x, y, zorder=zorder, **kwargs)
-
-        if is_constrained:
-            self._constrain_plot(img, ax, kwargs["transform"])
-        else:
-            self._update_display_range(x, y, ax)
-
+        self._bound_rink(x, y, img, ax, kwargs["transform"], is_constrained, update_display_range)
         return img
 
     @_validate_plot
-    def arrow(self, x1, y1, x2, y2, *, is_constrained=True,
+    def arrow(self, x1, y1, x2, y2, *, is_constrained=True, update_display_range=False,
               length_includes_head=True, head_width=1,
               zorder=20, ax=None, **kwargs):
         """ Wrapper for matplotlib arrow function.
@@ -361,6 +370,10 @@ class BaseRinkPlot(BaseRink):
 
             is_constrained: bool; default: True
                 Indicates whether or not the plot is constrained to remain inside the boards.
+
+            update_display_range: bool; default: False
+                Indicates whether or not to update the display range when coordinates are outside
+                the given range. Only used when is_constrained is False.
 
             length_includes_head: bool; default: True
                 Indicates if head of the arrow is to be included in calculating the length.
@@ -389,16 +402,16 @@ class BaseRinkPlot(BaseRink):
                                    zorder=zorder, head_width=head_width,
                                    length_includes_head=length_includes_head, **kwargs))
 
-        if is_constrained:
-            self._constrain_plot(arrows, ax, kwargs["transform"])
-        else:
-            self._update_display_range([*x1, *x2], [*y1, *y2], ax)
+        self._bound_rink(
+            [*x1, *x2], [*y1, *y2], arrows, ax,
+            kwargs["transform"], is_constrained, update_display_range
+        )
 
         return arrows
 
     @_validate_plot
     @_validate_values
-    def hexbin(self, x, y, *, values=None, is_constrained=True, symmetrize=False,
+    def hexbin(self, x, y, *, values=None, is_constrained=True, update_display_range=False, symmetrize=False,
                plot_range=None, plot_xlim=None, plot_ylim=None,
                gridsize=None, binsize=1, zorder=2, clip_on=True, ax=None, **kwargs):
         """ Wrapper for matplotlib hexbin function.
@@ -417,13 +430,17 @@ class BaseRinkPlot(BaseRink):
             values: array_like; optional
                 If None, values of 1 will be assigned to each x,y-coordinate provided.
 
-            symmetrize: bool; default: False
-                Indicates whether or not to reflect the coordinates and values across the y-axis.
-
             is_constrained: bool; default: True
                 Indicates whether or not the plot is constrained to remain inside the boards.
 
                 If plot ranges are used, also constrains coordinates included to remain inside the boards.
+
+            update_display_range: bool; default: False
+                Indicates whether or not to update the display range when coordinates are outside
+                the given range. Only used when is_constrained is False.
+
+            symmetrize: bool; default: False
+                Indicates whether or not to reflect the coordinates and values across the y-axis.
 
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"}; optional
                 Restricts the portion of the rink that can be plotted to.  Does so by removing values outside of
@@ -497,16 +514,13 @@ class BaseRinkPlot(BaseRink):
 
         img = ax.hexbin(x, y, C=values, gridsize=gridsize, zorder=zorder, **kwargs)
 
-        if is_constrained:
-            self._constrain_plot(img, ax, kwargs["transform"])
-        else:
-            self._update_display_range(x, y, ax)
+        self._bound_rink(x, y, img, ax, kwargs["transform"], is_constrained, update_display_range)
 
         return img
 
     @_validate_plot
     @_validate_values
-    def heatmap(self, x, y, *, values=None, symmetrize=False, is_constrained=True,
+    def heatmap(self, x, y, *, values=None, is_constrained=True, update_display_range=False, symmetrize=False,
                 plot_range=None, plot_xlim=None, plot_ylim=None,
                 statistic="sum", binsize=1, bins=None,
                 zorder=2, ax=None, **kwargs):
@@ -526,13 +540,17 @@ class BaseRinkPlot(BaseRink):
             values: array_like; optional
                 If None, values of 1 will be assigned to each x,y-coordinate provided.
 
-            symmetrize: bool; default: False
-                Indicates whether or not to reflect the coordinates and values across the y-axis.
-
             is_constrained: bool; default: True
                 Indicates whether or not the plot is constrained to remain inside the boards.
 
                 If plot ranges are used, also constrains coordinates included to remain inside the boards.
+
+            update_display_range: bool; default: False
+                Indicates whether or not to update the display range when coordinates are outside
+                the given range. Only used when is_constrained is False.
+
+            symmetrize: bool; default: False
+                Indicates whether or not to reflect the coordinates and values across the y-axis.
 
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"}; optional
                 Restricts the portion of the rink that can be plotted to.  Does so by removing values outside of
@@ -605,17 +623,14 @@ class BaseRinkPlot(BaseRink):
                                                    binsize, bins)
 
         img = ax.pcolormesh(x_edge, y_edge, stat, zorder=zorder, **kwargs)
-
-        if is_constrained:
-            self._constrain_plot(img, ax, kwargs["transform"])
-        else:
-            self._update_display_range(x, y, ax)
+        self._bound_rink(x, y, img, ax, kwargs["transform"], is_constrained, update_display_range)
 
         return img
 
     @_validate_plot
     @_validate_values
-    def contour(self, x, y, *, values=None, fill=True, symmetrize=False, is_constrained=True,
+    def contour(self, x, y, *, values=None, fill=True,
+                is_constrained=True, update_display_range=False, symmetrize=False,
                 plot_range=None, plot_xlim=None, plot_ylim=None,
                 statistic="sum", binsize=1, bins=None,
                 zorder=2, ax=None, **kwargs):
@@ -638,13 +653,17 @@ class BaseRinkPlot(BaseRink):
             fill: bool; default: True
                 Indicates whether or not to fill in the contours.
 
-            symmetrize: bool; default: False
-                Indicates whether or not to reflect the coordinates and values across the y-axis.
-
             is_constrained: bool; default: True
                 Indicates whether or not the plot is constrained to remain inside the boards.
 
                 If plot ranges are used, also constrains coordinates included to remain inside the boards.
+
+            update_display_range: bool; default: False
+                Indicates whether or not to update the display range when coordinates are outside
+                the given range. Only used when is_constrained is False.
+
+            symmetrize: bool; default: False
+                Indicates whether or not to reflect the coordinates and values across the y-axis.
 
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"}; optional
                 Restricts the portion of the rink that can be plotted to.  Does so by removing values outside of
@@ -729,10 +748,7 @@ class BaseRinkPlot(BaseRink):
         else:
             img = ax.contour(x_centers, y_centers, stat, zorder=zorder, **kwargs)
 
-        if is_constrained:
-            self._constrain_plot(img.collections, ax, kwargs["transform"])
-        else:
-            self._update_display_range(x, y, ax)
+        self._bound_rink(x, y, img.collections, ax, kwargs["transform"], is_constrained, update_display_range)
 
         return img
 
