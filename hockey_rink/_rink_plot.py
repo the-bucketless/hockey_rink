@@ -46,9 +46,7 @@ class BaseRinkPlot(BaseRink):
             if plot_range is None and plot_xlim is None and plot_ylim is None:
                 plot_xlim, plot_ylim = self._get_limits("full")
             else:
-                plot_xlim, plot_ylim = self._get_limits(plot_range,
-                                                        self.copy_(plot_xlim),
-                                                        self.copy_(plot_ylim))
+                plot_xlim, plot_ylim = self._get_limits(plot_range, plot_xlim, plot_ylim)
 
                 mask = ((x < plot_xlim[0]) | (x > plot_xlim[1])
                         | (y < plot_ylim[0]) | (y > plot_ylim[1]))
