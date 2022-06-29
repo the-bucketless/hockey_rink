@@ -249,6 +249,8 @@ class Rink(BaseRinkPlot):
             crossbar: dict; optional
                 Attributes to update for the crossbar(s) of the net.
 
+                The visibility defaults to match the net's visibility.
+
             net: dict; optional
                 Attributes to update for the netting of the net.
 
@@ -557,6 +559,8 @@ class Rink(BaseRinkPlot):
         self._initialize_feature(crease_outline_params)
 
         crossbar = crossbar or {}
+        net = net or {}
+
         crossbar_params = {
             "class": rf.Crossbar,
             "x": goal_line_params["x"] - goal_line_params["length"] / 2,
@@ -565,13 +569,13 @@ class Rink(BaseRinkPlot):
             "reflect_x": True,
             "color": "red",
             "zorder": 6,
+            "visible": net.get("visible", True),
         }
         crossbar_params.update(crossbar)
         crossbar_params["width"] = crossbar_params.get(
             "width", 6 + crossbar_params["radius"])
         self._initialize_feature(crossbar_params)
 
-        net = net or {}
         net_params = {
             "class": rf.Net,
             "x": crossbar_params["x"] + crossbar_params["radius"] * 2,
