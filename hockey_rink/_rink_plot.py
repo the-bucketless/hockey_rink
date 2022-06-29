@@ -512,9 +512,14 @@ class BaseRinkPlot(BaseRink):
                             int((plot_ylim[1] - plot_ylim[0]) / binsize[1]))
         gridsize = gridsize or default_gridsize
 
+        transform = kwargs.pop("transform")
+        hexagon_transform = transform - ax.transData
         img = ax.hexbin(x, y, C=values, gridsize=gridsize, zorder=zorder, **kwargs)
+        hexagon = img.get_paths()[0]
+        hexagon.vertices = hexagon_transform.transform(hexagon.vertices)
+        img.set_offsets(hexagon_transform.transform(img.get_offsets()))
 
-        self._bound_rink(x, y, img, ax, kwargs["transform"], is_constrained, update_display_range)
+        self._bound_rink(x, y, img, ax, transform, is_constrained, update_display_range)
 
         return img
 
