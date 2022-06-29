@@ -512,6 +512,8 @@ class BaseRinkPlot(BaseRink):
                             int((plot_ylim[1] - plot_ylim[0]) / binsize[1]))
         gridsize = gridsize or default_gridsize
 
+        # delay application of transform until after drawing hexbin
+        # an update to matplotlib doesn't rotate the position of the hexagons
         transform = kwargs.pop("transform")
         hexagon_transform = transform - ax.transData
         img = ax.hexbin(x, y, C=values, gridsize=gridsize, zorder=zorder, **kwargs)
@@ -748,10 +750,11 @@ class BaseRinkPlot(BaseRink):
         if plot_ylim is not None:
             y_centers[-1] = max(y_centers[-1], plot_ylim[1])
 
-        if fill:
-            img = ax.contourf(x_centers, y_centers, stat, zorder=zorder, **kwargs)
-        else:
-            img = ax.contour(x_centers, y_centers, stat, zorder=zorder, **kwargs)
+        # avoid warning for argument not used in function
+        kwargs.pop("clip_on", None)
+
+        contour_function = ax.contourf if fill else ax.contour
+        img = contour_function(x_centers, y_centers, stat, zorder=zorder, **kwargs)
 
         self._bound_rink(x, y, img.collections, ax, kwargs["transform"], is_constrained, update_display_range)
 
