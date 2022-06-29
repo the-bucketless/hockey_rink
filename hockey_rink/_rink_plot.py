@@ -500,7 +500,7 @@ class BaseRinkPlot(BaseRink):
             matplotlib PolyCollection
         """
 
-        # setting clip_on to True can lead to odd results
+        # setting clip_on to False can lead to odd results
         kwargs["clip_on"] = kwargs.get("clip_on", True)
 
         try:
