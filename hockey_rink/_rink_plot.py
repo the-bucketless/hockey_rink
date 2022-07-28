@@ -31,7 +31,7 @@ class BaseRinkPlot(BaseRink):
 
             # x and y will already have been symmetrized
             if values is None:
-                values = np.ones(x.shape)
+                values = np.ones_like(x)
             else:
                 values = np.ravel(values)
 
@@ -509,6 +509,12 @@ class BaseRinkPlot(BaseRink):
         default_gridsize = (int((plot_xlim[1] - plot_xlim[0]) / binsize[0]),
                             int((plot_ylim[1] - plot_ylim[0]) / binsize[1]))
         gridsize = gridsize or default_gridsize
+
+        # matplotlib hexbin uses count when C is None, but uses np.mean when values are included
+        # since None is replaced in values with an array of ones, the reduce function needs to be
+        # changed to allow for the same default behaviour
+        if np.all(values == 1):
+            kwargs["reduce_C_function"] = kwargs.get("reduce_C_function", np.sum)
 
         # delay application of transform until after drawing hexbin
         # an update to matplotlib doesn't rotate the position of the hexagons
