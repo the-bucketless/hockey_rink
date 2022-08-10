@@ -689,7 +689,7 @@ class IIHFRink(Rink):
         half_goal_line_thickness = kwargs.get("goal_line", {}).get("length", line_thickness) / 2
         boards_length = kwargs.get("boards", {}).get("length", 197)
         iihf_updates["goal_line"] = {"x": boards_length / 2 - 13.1 + half_goal_line_thickness}
-        goal_line_x = (kwargs.get("goal_line", iihf_updates["goal_line"])["x"]
+        goal_line_x = (kwargs.get("goal_line", {}).get("x", iihf_updates["goal_line"]["x"])
                        - half_goal_line_thickness)
 
         iihf_updates["faceoff_circle"] = {"x": goal_line_x - 22}
