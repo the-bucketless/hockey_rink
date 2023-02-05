@@ -112,7 +112,7 @@ class RinkFeature(ABC):
         self.polygon_kwargs = polygon_kwargs
 
     @abstractmethod
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         """ Abstract method to return the x and y-coordinates necessary to create a Polygon of the feature
         were it to be recorded at (0, 0).
 
@@ -212,7 +212,7 @@ class RinkFeature(ABC):
         matplotlib Polygon representing the feature.
         """
 
-        x, y = self._get_centered_xy()
+        x, y = self.get_centered_xy()
         x = x * self.x_reflection + self.x
         y = y * self.y_reflection + self.y
 
@@ -250,7 +250,7 @@ class Boards(RinkFeature):
     See RinkFeature for full documentation.
     """
 
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         end_x = self.length / 2
         end_y = self.width / 2
 
@@ -294,7 +294,7 @@ class BoardsConstraint(RinkFeature):
     See RinkFeature for full documentation.
     """
 
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         end_x = self.length / 2
         end_y = self.width / 2
 
@@ -331,7 +331,7 @@ class RinkRectangle(RinkFeature):
     See RinkFeature for full documentation.
     """
 
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         half_length = self.length / 2
         half_width = self.width / 2
         x = np.array([-half_length, half_length, half_length, -half_length])
@@ -349,7 +349,7 @@ class RinkCircle(RinkFeature):
     See RinkFeature for full documentation.
     """
 
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         return self.arc_coords((0, 0), width=self.radius - self.thickness,
                                thickness=self.thickness, resolution=self.resolution)
 
@@ -363,7 +363,7 @@ class TrapezoidLine(RinkFeature):
     See RinkFeature for full documentation.
     """
 
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         half_thickness = self.thickness / 2
 
         x = np.array([0, 0, self.length, self.length])
@@ -383,7 +383,7 @@ class InnerDot(RinkFeature):
     See RinkFeature for full documentation.
     """
 
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         radius = self.radius - self.thickness
         circle_x, circle_y = self.arc_coords((0, 0), width=radius,
                                              resolution=self.resolution)
@@ -405,7 +405,7 @@ class FaceoffCircle(RinkFeature):
     See RinkFeature for full documentation.
     """
 
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         circle_x, circle_y = self.arc_coords((0, 0), width=self.radius - self.thickness,
                                              thickness=self.thickness, resolution=self.resolution)
 
@@ -439,7 +439,7 @@ class RinkL(RinkFeature):
     See RinkFeature for full documentation.
     """
 
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         # inside corner -> top of L -> outside corner -> right of L
         x = np.array(([0, 0, self.thickness * np.sign(self.length),
                        self.thickness * np.sign(self.length), self.length, self.length]))
@@ -464,7 +464,7 @@ class Crease(RinkFeature):
     See RinkFeature for full documentation.
     """
 
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         half_width = self.width / 2
 
         arc_x, arc_y = self.arc_coords(center=(self.length, 0),
@@ -495,7 +495,7 @@ class Crossbar(RinkFeature):
     See RinkFeature for full documentation.
     """
 
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         half_width = self.width / 2
 
         # rounded end of the bar
@@ -521,7 +521,7 @@ class Net(RinkFeature):
     See RinkFeature for full documentation.
     """
 
-    def _get_centered_xy(self):
+    def get_centered_xy(self):
         half_width = self.width / 2
         half_outer_width = max(half_width, self.thickness / 2)
 
