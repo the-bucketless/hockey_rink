@@ -75,8 +75,6 @@ class RinkFeature(ABC):
         is_constrained: bool
             Whether or not the feature is constrained to remain inside the boards.
 
-        visible: bool
-
         polygon_kwargs: dict
             Any additional arguments to be passed to plt.Polygon.
     """
@@ -87,8 +85,8 @@ class RinkFeature(ABC):
         length=0, width=0, thickness=0,
         radius=0, resolution=500,
         is_reflected_x=False, is_reflected_y=False,
-        is_constrained=True, visible=True,
-        **polygon_kwargs
+        is_constrained=True,
+        **polygon_kwargs,
     ):
         """ Initialize attributes.
 
@@ -103,7 +101,6 @@ class RinkFeature(ABC):
             is_reflected_x: bool (default=False)
             is_reflected_y: bool (default=False)
             is_constrained: bool (default=True)
-            visible: bool (default=True)
             polygon_kwargs: dict (optional)
         """
 
@@ -117,7 +114,6 @@ class RinkFeature(ABC):
         self.is_reflected_x = is_reflected_x
         self.is_reflected_y = is_reflected_y
         self.is_constrained = is_constrained
-        self.visible = visible
         self.polygon_kwargs = polygon_kwargs
 
     @abstractmethod
@@ -225,7 +221,6 @@ class RinkFeature(ABC):
 
         return plt.Polygon(
             tuple(zip(polygon_x, polygon_y)),
-            visible=self.visible,
             **self.polygon_kwargs,
         )
 
@@ -682,7 +677,8 @@ class CircularImage(RinkCircle):
         super().__init__(is_constrained=is_constrained, **polygon_kwargs)
 
     def draw(self, ax=None, transform=None):
-        if not self.visible:
+        # Early exit if not visible.
+        if not self.polygon_kwargs.get("visible", True):
             return None
 
         if ax is None:
