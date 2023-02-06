@@ -66,13 +66,11 @@ class RinkFeature(ABC):
         resolution: int
             The number of coordinates used in creating arcs.
 
-        x_reflection: -1 or 1
-            If -1, reflects all x-coordinates.
-            If 1, leaves x-coordinates as they are.
+        is_reflected_x: bool
+            Whether or not the x-coordinates are to be reflected.
 
-        y_reflection: -1 or 1
-            If -1, reflects all y-coordinates.
-            If 1, leaves y-coordinates as they are.
+        is_reflected_y: bool
+            Whether or not the y-coordinates are to be reflected.
 
         is_constrained: bool
             Whether or not the feature is constrained to remain inside the boards.
@@ -116,8 +114,8 @@ class RinkFeature(ABC):
         self.thickness = thickness
         self.radius = radius
         self.resolution = resolution
-        self.x_reflection = -1 if is_reflected_x else 1
-        self.y_reflection = -1 if is_reflected_y else 1
+        self.is_reflected_x = is_reflected_x
+        self.is_reflected_y = is_reflected_y
         self.is_constrained = is_constrained
         self.visible = visible
         self.polygon_kwargs = polygon_kwargs
@@ -215,7 +213,10 @@ class RinkFeature(ABC):
         theta = np.arccos(radius / center_to_point)
         angle = np.arctan2(dy, dx) - theta * np.sign(point[1])
 
-        return center[0] + radius * np.cos(angle), center[1] + radius * np.sin(angle)
+        return (
+            center[0] + radius * np.cos(angle),
+            center[1] + radius * np.sin(angle)
+        )
 
     def get_polygon(self):
         """ Creates the plt.Polygon representing the feature. """
@@ -232,8 +233,14 @@ class RinkFeature(ABC):
         """ Determines the x and y-coordinates necessary for creating the plt.Polygon representing the feature. """
 
         x, y = self.get_centered_xy()
-        x = x * self.x_reflection + self.x
-        y = y * self.y_reflection + self.y
+
+        if self.is_reflected_x:
+            x *= -1
+        if self.is_reflected_y:
+            y *= -1
+
+        x = x + self.x
+        y = y + self.y
 
         return x, y
 
@@ -590,7 +597,7 @@ class Crossbar(RinkFeature):
             center=(self.radius, 0),
             width=self.radius,
             theta2=180,
-            resolution=self.resolution
+            resolution=self.resolution,
         )
 
         x = np.concatenate((arc_x, arc_x[::-1]))
@@ -659,7 +666,7 @@ class CircularImage(RinkCircle):
 
     Inherits from RinkFeature.
 
-    If is_constrained is set to False, the image will no longer be circular.
+    If is_constrained is set to True, the image will no longer be circular.
 
     Additional attributes:
         path: string
@@ -686,8 +693,8 @@ class CircularImage(RinkCircle):
         try:
             image = plt.imread(self.path)
 
-            x = self.x * self.x_reflection
-            y = self.y * self.y_reflection
+            x = -self.x if self.is_reflected_x else self.x
+            y = -self.y if self.is_reflected_y else self.y
 
             extent = [
                 int(x - self.radius), int(x + self.radius),
@@ -700,7 +707,11 @@ class CircularImage(RinkCircle):
                 + transform
             )
 
-            patch = plt.Circle((x, y), radius=self.radius, transform=transform)
+            patch = plt.Circle(
+                (x, y),
+                radius=self.radius,
+                transform=transform,
+            )
             im.set_clip_path(patch)
 
             return im
