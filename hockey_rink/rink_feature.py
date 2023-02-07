@@ -266,17 +266,15 @@ class RinkFeature(ABC):
 
 
 class Boards(RinkFeature):
-    """ One quarter of a rink's boards.
+    """ The boards around the rink.
 
     Inherits from RinkFeature.
 
-    The length and width attributes are for the full ice surface as opposed to the quadrant being drawn. They are
-    also the inside of the arc of the boards. The outside is determined by the thickness attribute. When thickness
+    The length and width attributes are the size of the ice surface, not including the boards. When thickness
     is 0, the boards will not be drawn.
 
-    The radius attribute is the radius of the arc for the corner of the boards.
-
-    Can be reflected across the x and y axes to create the entire board outline.
+    The radius attribute is the radius of the arc for the corner of the boards. Inappropriate values will lead to
+    unusual shapes.
     """
 
     def get_centered_xy(self):
@@ -294,25 +292,41 @@ class Boards(RinkFeature):
             theta2=0,
         )
 
-        inner_arc_x, outer_arc_x = np.reshape(arc_x, (2, -1))
-        inner_arc_y, outer_arc_y = np.reshape(arc_y, (2, -1))
+        # Still need coordinates when thickness is 0. Reversing the inner arc coordinates will result in the
+        # boards not being drawn while still having coordinates.
+        if self.thickness == 0:
+            inner_arc_x = arc_x
+            outer_arc_x = arc_x[::-1]
+            inner_arc_y = arc_y
+            outer_arc_y = arc_y[::-1]
+        else:
+            inner_arc_x, outer_arc_x = np.reshape(arc_x, (2, -1))
+            inner_arc_y, outer_arc_y = np.reshape(arc_y, (2, -1))
 
         board_x = np.concatenate((
-            [0],    # Inside center ice.
-            inner_arc_x,    # Inside corner.
-            [end_x],    # Inside end boards.
-            [end_x + self.thickness],    # Outside end boards.
-            outer_arc_x,    # Outside corner.
-            [0],    # Outside center ice.
+            inner_arc_x,    # Inside top right corner.
+            inner_arc_x[::-1],    # Inside bottom right corner.
+            -inner_arc_x,    # Inside bottom left corner.
+            -inner_arc_x[::-1],    # Inside top left corner.
+            inner_arc_x[:1],    # Start of inside top left corner.
+            outer_arc_x[-1:],    # End of inside top left corner.
+            -outer_arc_x[::-1],    # Outside top left corner.
+            -outer_arc_x,    # Outside bottom left corner.
+            outer_arc_x[::-1],    # Outside bottom right corner.
+            outer_arc_x,    # Outside top right corner.
         ))
 
         board_y = np.concatenate((
-            [end_y],    # Inside center ice.
             inner_arc_y,    # Inside corner.
-            [0],    # Inside end boards.
-            [0],    # Outside end boards.
-            outer_arc_y,    # Outside corner.
-            [end_y + self.thickness],    # Outside center ice.
+            -inner_arc_y[::-1],    # Inside bottom right corner.
+            -inner_arc_y,    # Inside bottom left corner.
+            inner_arc_y[::-1],    # Inside top left corner.
+            inner_arc_y[:1],    # Start of inside top left corner.
+            outer_arc_y[-1:],    # End of inside top left corner.
+            outer_arc_y[::-1],    # Outside top left corner.
+            -outer_arc_y,    # Outside bottom left corner.
+            -outer_arc_y[::-1],    # Outside bottom right corner.
+            outer_arc_y,    # Outside top right corner.
         ))
 
         return board_x, board_y

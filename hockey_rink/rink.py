@@ -283,8 +283,8 @@ class Rink(BaseRinkPlot):
             "class": rf.Boards,
             "x": 0,
             "y": 0,
-            "reflect_x": True,
-            "reflect_y": True,
+            "reflect_x": False,
+            "reflect_y": False,
             "is_constrained": False,
         }
         board_params = {**board_params, **boards, **required_boards}
