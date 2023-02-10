@@ -93,7 +93,7 @@ class BaseRink(ABC):
 
         transform = transform or ax.transData
 
-        constraint = self._boards_constraint.get_polygon()
+        constraint = self._boards_constraint.get_constraint()
         constraint.set_transform(transform)
         ax.add_patch(constraint)
 
@@ -349,7 +349,7 @@ class BaseRink(ABC):
         if ax is None:
             ax = plt.gca()
 
-        x, y = self._boards_constraint.get_polygon_xy()
+        x, y = self._boards_constraint.get_constraint_xy()
 
         xlim, ylim = self._get_limits(display_range, xlim, ylim,
                                       self._boards_constraint.thickness)

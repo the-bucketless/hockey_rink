@@ -290,18 +290,8 @@ class Rink(BaseRinkPlot):
         board_params = {**board_params, **boards, **required_boards}
         self._initialize_feature(board_params)
 
-        boards_constraint = {
-            "class": rf.BoardsConstraint,
-            "length": board_params["length"],
-            "width": board_params["width"],
-            "radius": board_params["radius"],
-            "thickness": board_params["thickness"],
-            "reflect_x": False,
-            "reflect_y": False,
-            "visible": False,
-        }
-        self._initialize_feature(boards_constraint)
-        self._boards_constraint = self._features.pop(-1)
+        # Store additional reference to boards in separate attribute to use as constraint.
+        self._boards_constraint = self._features[-1]
 
         half_length = board_params["length"] / 2
         half_width = board_params["width"] / 2

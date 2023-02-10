@@ -2,7 +2,6 @@
 
 Currently available features are:
     Boards
-    BoardsConstraint
     RinkRectangle
     RinkCircle
     TrapezoidLine
@@ -19,7 +18,6 @@ Currently available features are:
 __all__ = [
     "RinkFeature",
     "Boards",
-    "BoardsConstraint",
     "RinkRectangle",
     "RinkCircle",
     "TrapezoidLine",
@@ -270,8 +268,8 @@ class Boards(RinkFeature):
 
     Inherits from RinkFeature.
 
-    The length and width attributes are the size of the ice surface, not including the boards. When thickness
-    is 0, the boards will not be drawn.
+    The length and width attributes are the size of the ice surface, not including the thickness of the boards. When
+    thickness is 0, the boards will not be drawn.
 
     The radius attribute is the radius of the arc for the corner of the boards. Inappropriate values will lead to
     unusual shapes.
@@ -331,47 +329,31 @@ class Boards(RinkFeature):
 
         return board_x, board_y
 
+    def get_constraint_xy(self):
+        """ Determines the x and y-coordinates necessary for bounding the rink by the boards. Only the inner arc of
+        the boards is needed for creating the bound.
 
-class BoardsConstraint(RinkFeature):
-    """ The inside edge of the boards. Used to constrain other features to being inside the rink.
+        Returns:
+            np.array, np.array
+        """
 
-    Inherits from RinkFeature.
+        x, y = self.get_polygon_xy()
 
-    Unlike Boards feature, is used for the entire ice surface.
+        # Only want the inside edge of the boards.
+        x = x[:len(x) // 2]
+        y = y[:len(y) // 2]
 
-    The radius attribute is the radius of the arc for the corner of the boards.
-    """
+        return x, y
 
-    def get_centered_xy(self):
-        end_x = self.length / 2
-        end_y = self.width / 2
+    def get_constraint(self):
+        """ Creates a Polygon for use to constrain other objects within the inner edge of the boards.
 
-        center_x = end_x - self.radius
-        center_y = end_y - self.radius
+        Returns:
+            plt.Polygon
+        """
 
-        arc_x, arc_y = self.arc_coords(
-            center=(center_x, center_y),
-            width=self.radius,
-            theta1=90,
-            theta2=0,
-            resolution=self.resolution,
-        )
-
-        board_x = np.concatenate((
-            arc_x,    # Top right corner.
-            arc_x[::-1],    # Bottom right corner.
-            -arc_x,    # Bottom left corner.
-            -arc_x[::-1],    # Top left corner.
-        ))
-
-        board_y = np.concatenate((
-            arc_y,    # Top right corner.
-            -arc_y[::-1],    # Bottom right corner.
-            -arc_y,    # Bottom left corner.
-            arc_y[::-1],    # Top left corner.
-        ))
-
-        return board_x, board_y
+        x, y = self.get_constraint_xy()
+        return plt.Polygon(tuple(zip(x, y)), visible=False)
 
 
 class RinkRectangle(RinkFeature):
