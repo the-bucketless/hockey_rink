@@ -623,20 +623,31 @@ class NWHLRink(NHLRink):
     def __init__(self, **kwargs):
         half_width = kwargs.get("boards", {}).get("width", 85) / 2
         center_radius = kwargs.get("center_circle", {}).get("radius", 15)
+        center_thickness = kwargs.get("center_circle", {}).get("thickness", 2)
 
         nwhl_updates = {
             "nzone": {"length": 60, "color": "#B266FF"},
             "ref_circle": {"y": half_width},
-            "center_circle": {"thickness": 2, "color": "#003366", "zorder": 12},
+            "center_circle": {
+                "thickness": center_thickness,
+                "color": "#003366",
+                "zorder": 12,
+                "linewidth": 0,    # Avoid drawing line in circle when alpha isn't 1.
+            },
             "center_dot": {"visible": False},
             "trapezoid": {"visible": False},
             "logo": {
                 "class": CircularImage,
                 "path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
-                "radius": center_radius,
+                "radius": center_radius - center_thickness,
                 "is_constrained": False,
                 "zorder": 11
-            }
+            },
+            "red_line": {
+                "class": LowerInwardArcRectangle,
+                "radius": center_radius,
+                "reflect_y": True,
+            },
         }
 
         for k, v in nwhl_updates.items():

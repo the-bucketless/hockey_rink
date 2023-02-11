@@ -12,6 +12,7 @@ Currently available features are:
     Crossbar
     Net
     CircularImage
+    LowerInwardArcRectangle
 """
 
 
@@ -28,6 +29,7 @@ __all__ = [
     "Crossbar",
     "Net",
     "CircularImage",
+    "LowerInwardArcRectangle",
 ]
 
 
@@ -742,3 +744,35 @@ class CircularImage(RinkCircle):
             print(e)
 
             return None
+
+
+class LowerInwardArcRectangle(RinkFeature):
+    """ A rectangle with one rounded edge. This can be used, for example, at center ice when the red line
+    should not extend all the way across the rink, but stop at the faceoff circle. The rounded edge will
+    arc inside the bottom of the rectangle (or top if reflected).
+
+    The x attribute is the center of the rectangle.
+    The y attribute is the bottom of the rectangle.
+    The length attribute is the bottom to top distance including the radius.
+
+    Inherits from RinkFeature.
+    """
+
+    def get_centered_xy(self):
+        arc_x, arc_y = self.arc_coords(
+            center=(0, 0),
+            width=self.radius,
+            theta2=180,
+            resolution=self.resolution,
+        )
+
+        # Only use coordinates that are within the left-to-right space of the feature.
+        half_length = self.length / 2
+        mask = (arc_x >= -half_length) & (arc_x <= half_length)
+        arc_x = arc_x[mask]
+        arc_y = arc_y[mask]
+
+        x = np.concatenate([arc_x, [-half_length, half_length]])
+        y = np.concatenate([arc_y, [self.width, self.width]])
+
+        return x, y
