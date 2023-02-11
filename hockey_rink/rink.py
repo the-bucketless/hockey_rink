@@ -2,7 +2,8 @@
 
 
 from hockey_rink._rink_plot import BaseRinkPlot
-import hockey_rink.rink_feature as rf
+from hockey_rink.rink_feature import *
+from itertools import product
 from matplotlib.transforms import Affine2D
 import numpy as np
 
@@ -20,9 +21,6 @@ class Rink(BaseRinkPlot):
             x-coordinates go from -100 to 100 and y-coordinates from -42.5 to 42.5.
 
     Attributes:
-        rotation: matplotlib Affine2D
-            Rotation of rink features when drawing.
-
         x_shift: float
             Amount x-coordinates are to be shifted.
 
@@ -40,11 +38,6 @@ class Rink(BaseRinkPlot):
 
             The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
             align with the drawing, not to alter the drawing to align with the coordinates.
-
-        alpha: float; default: None
-            The alpha blending value, between 0 (transparent) and 1 (opaque).
-
-            If not None, will be used for all features of the rink that don't override it.
     """
 
     def __init__(self, rotation=0, x_shift=0, y_shift=0, alpha=None,
@@ -264,9 +257,7 @@ class Rink(BaseRinkPlot):
         self.x_shift = x_shift
         self.y_shift = y_shift
 
-        self.alpha = alpha
-
-        self._features = []
+        self._features = {}
         self._feature_xlim = None
         self._feature_ylim = None
 
@@ -280,7 +271,7 @@ class Rink(BaseRinkPlot):
             "zorder": 100,
         }
         required_boards = {
-            "class": rf.Boards,
+            "class": Boards,
             "x": 0,
             "y": 0,
             "reflect_x": False,
@@ -288,10 +279,7 @@ class Rink(BaseRinkPlot):
             "is_constrained": False,
         }
         board_params = {**board_params, **boards, **required_boards}
-        self._initialize_feature(board_params)
-
-        # Store additional reference to boards in separate attribute to use as constraint.
-        self._boards_constraint = self._features[-1]
+        self._initialize_feature("boards", board_params, alpha)
 
         half_length = board_params["length"] / 2
         half_width = board_params["width"] / 2
@@ -302,7 +290,7 @@ class Rink(BaseRinkPlot):
             "color": "white",
         }
         required_nzone = {
-            "class": rf.RinkRectangle,
+            "class": RinkRectangle,
             "x": 0,
             "y": 0,
             "width": board_params["width"],
@@ -310,18 +298,18 @@ class Rink(BaseRinkPlot):
             "reflect_y": False,
         }
         nzone_params = {**nzone_params, **nzone, **required_nzone}
-        self._initialize_feature(nzone_params)
+        self._initialize_feature("nzone", nzone_params, alpha)
 
-        self._half_nzone_length = nzone_params["length"] / 2
+        half_nzone_length = nzone_params["length"] / 2
 
         ozone = ozone or {}
-        ozone_length = half_length - self._half_nzone_length
+        ozone_length = half_length - half_nzone_length
         ozone_params = {
             "color": "white",
         }
         required_ozone = {
-            "class": rf.RinkRectangle,
-            "x": ozone_length / 2 + self._half_nzone_length,
+            "class": RinkRectangle,
+            "x": ozone_length / 2 + half_nzone_length,
             "y": 0,
             "length": ozone_length,
             "width": board_params["width"],
@@ -329,14 +317,14 @@ class Rink(BaseRinkPlot):
             "reflect_y": False,
         }
         ozone_params = {**ozone_params, **ozone, **required_ozone}
-        self._initialize_feature(ozone_params)
+        self._initialize_feature("ozone", ozone_params, alpha)
 
         dzone = dzone or {}
         dzone_params = {
             "color": "white",
         }
         required_dzone = {
-            "class": rf.RinkRectangle,
+            "class": RinkRectangle,
             "x": -ozone_params["x"],
             "y": 0,
             "length": ozone_length,
@@ -345,22 +333,22 @@ class Rink(BaseRinkPlot):
             "reflect_y": False,
         }
         dzone_params = {**dzone_params, **dzone, **required_dzone}
-        self._initialize_feature(dzone_params)
+        self._initialize_feature("dzone", dzone_params, alpha)
 
         red_line = red_line or {}
         red_line_params = {
-            "class": rf.RinkRectangle,
+            "class": RinkRectangle,
             "length": 1,
             "width": board_params["width"],
             "color": "red",
             "zorder": 10,
         }
         red_line_params.update(red_line)
-        self._initialize_feature(red_line_params)
+        self._initialize_feature("red_line", red_line_params, alpha)
 
         blue_line = blue_line or {}
         blue_line_params = {
-            "class": rf.RinkRectangle,
+            "class": RinkRectangle,
             "length": 1,
             "width": board_params["width"],
             "reflect_x": True,
@@ -369,14 +357,13 @@ class Rink(BaseRinkPlot):
         }
         blue_line_params.update(blue_line)
         blue_line_params["x"] = blue_line_params.get(
-            "x", self._half_nzone_length + blue_line_params["length"] / 2)
+            "x", half_nzone_length + blue_line_params["length"] / 2)
 
-        self._blue_line_thickness = blue_line_params["length"]
-        self._initialize_feature(blue_line_params)
+        self._initialize_feature("blue_line", blue_line_params, alpha)
 
         goal_line = goal_line or {}
         goal_line_params = {
-            "class": rf.RinkRectangle,
+            "class": RinkRectangle,
             "length": line_thickness,
             "width": board_params["width"],
             "reflect_x": True,
@@ -389,13 +376,13 @@ class Rink(BaseRinkPlot):
         goal_line_params["x"] = goal_line_params.get(
             "x", half_length - 11 - goal_line_params["length"] / 2)
 
-        self._initialize_feature(goal_line_params)
+        self._initialize_feature("goal_line", goal_line_params, alpha)
 
         # trapezoid lines go from 11 ft from center to 14 ft from center
         # 11 and 14 refer to the center of the line
         trapezoid = trapezoid or {}
         trapezoid_params = {
-            "class": rf.TrapezoidLine,
+            "class": TrapezoidLine,
             "x": goal_line_params["x"] + goal_line_params["length"] / 2,
             "y": 11,
             "width": 3,
@@ -408,11 +395,11 @@ class Rink(BaseRinkPlot):
         trapezoid_params.update(trapezoid)
         trapezoid_params["length"] = trapezoid_params.get(
             "length", half_length - trapezoid_params["x"])
-        self._initialize_feature(trapezoid_params)
+        self._initialize_feature("trapezoid", trapezoid_params, alpha)
 
         ref_circle = ref_circle or {}
         ref_circle_params = {
-            "class": rf.RinkCircle,
+            "class": RinkCircle,
             "y": -half_width,
             "thickness": line_thickness,
             "radius": 10,
@@ -420,32 +407,32 @@ class Rink(BaseRinkPlot):
             "zorder": line_zorder,
         }
         ref_circle_params.update(ref_circle)
-        self._initialize_feature(ref_circle_params)
+        self._initialize_feature("ref_circle", ref_circle_params, alpha)
 
         center_dot = center_dot or {}
         center_dot_params = {
-            "class": rf.RinkCircle,
+            "class": RinkCircle,
             "radius": red_line_params["length"] / 2,
             "color": "blue",
             "zorder": 11,
         }
         center_dot_params.update(center_dot)
-        self._initialize_feature(center_dot_params)
+        self._initialize_feature("center_dot", center_dot_params, alpha)
 
         center_circle = center_circle or {}
         center_circle_params = {
-            "class": rf.RinkCircle,
+            "class": RinkCircle,
             "thickness": line_thickness,
             "radius": 15,
             "color": "blue",
             "zorder": line_zorder,
         }
         center_circle_params.update(center_circle)
-        self._initialize_feature(center_circle_params)
+        self._initialize_feature("center_circle", center_circle_params, alpha)
 
         faceoff_circle = faceoff_circle or {}
         faceoff_circle_params = {
-            "class": rf.FaceoffCircle,
+            "class": FaceoffCircle,
             # 20' from front edge of goal line
             "x": goal_line_params["x"] - goal_line_params["length"] / 2 - 20,
             "y": 22,    # 44' between faceoff dots
@@ -460,16 +447,16 @@ class Rink(BaseRinkPlot):
             "zorder": line_zorder,
         }
         faceoff_circle_params.update(faceoff_circle)
-        self._initialize_feature(faceoff_circle_params)
+        self._initialize_feature("faceoff_circle", faceoff_circle_params, alpha)
 
         ozone_dot_x = np.ravel(faceoff_circle_params["x"])
         dot_y = np.ravel(faceoff_circle_params["y"])
 
         faceoff_dot = faceoff_dot or {}
         faceoff_dot_params = {
-            "class": rf.RinkCircle,
+            "class": RinkCircle,
             # ozone faceoff circles and 5' from the blue line
-            "x": [*ozone_dot_x, self._half_nzone_length - 5],
+            "x": [*ozone_dot_x, half_nzone_length - 5],
             "y": dot_y,
             "length": 16 / 12,    # edge to edge of inner shape
             "thickness": 1 / 12,
@@ -483,13 +470,13 @@ class Rink(BaseRinkPlot):
         # split dot into two shapes, one for the outer circle and one for the inner shape
         faceoff_dot_params.update(faceoff_dot)
         inner_dot_params = dict(faceoff_dot_params)
-        inner_dot_params["class"] = rf.InnerDot
-        self._initialize_feature(faceoff_dot_params)
-        self._initialize_feature(inner_dot_params)
+        inner_dot_params["class"] = InnerDot
+        self._initialize_feature("faceoff_dot", faceoff_dot_params, alpha)
+        self._initialize_feature("inner_dot", inner_dot_params, alpha)
 
         faceoff_lines = faceoff_lines or {}
         faceoff_lines_params = {
-            "class": rf.RinkL,
+            "class": RinkL,
             "x": ozone_dot_x,
             "y": dot_y,
             "length": 4,
@@ -513,21 +500,20 @@ class Rink(BaseRinkPlot):
             faceoff_lines_params["y"] = [faceoff_lines_params["y"]]
 
         # one L for each side of the dot
-        for x_side in (1, -1):
-            for y_side in (1, -1):
-                current_line = dict(faceoff_lines_params)
-                current_line["x"] = [x + x_dot_to_lines * x_side for x in current_line["x"]]
-                current_line["y"] = [y + y_dot_to_lines * y_side for y in current_line["y"]]
+        for i, (x_side, y_side) in enumerate(product((1, -1), (1, -1))):
+            current_line = dict(faceoff_lines_params)
+            current_line["x"] = [x + x_dot_to_lines * x_side for x in current_line["x"]]
+            current_line["y"] = [y + y_dot_to_lines * y_side for y in current_line["y"]]
 
-                # change shape by using negative length and/or width
-                current_line["length"] = current_line["length"] * x_side
-                current_line["width"] = current_line["width"] * y_side
+            # change shape by using negative length and/or width
+            current_line["length"] = current_line["length"] * x_side
+            current_line["width"] = current_line["width"] * y_side
 
-                self._initialize_feature(current_line)
+            self._initialize_feature(f"faceoff_line{i}", current_line, alpha)
 
         crease = crease or {}
         crease_params = {
-            "class": rf.Crease,
+            "class": Crease,
             "x": goal_line_params["x"] - goal_line_params["length"] / 2,
             "length": 4.5,    # 4'6" rectangular section
             "width": 8,    # 8' from outside edge to outside edge
@@ -545,14 +531,14 @@ class Rink(BaseRinkPlot):
         crease_outline_params["zorder"] = line_zorder
         crease_outline_params.update(crease_outline)
 
-        self._initialize_feature(crease_params)
-        self._initialize_feature(crease_outline_params)
+        self._initialize_feature("crease", crease_params, alpha)
+        self._initialize_feature("crease_outline", crease_outline_params, alpha)
 
         crossbar = crossbar or {}
         net = net or {}
 
         crossbar_params = {
-            "class": rf.Crossbar,
+            "class": Crossbar,
             "x": goal_line_params["x"] - goal_line_params["length"] / 2,
             # posts are 2 3/8" wide => half = 19/16"
             "radius": 19 / 16 / 12,
@@ -564,10 +550,10 @@ class Rink(BaseRinkPlot):
         crossbar_params.update(crossbar)
         crossbar_params["width"] = crossbar_params.get(
             "width", 6 + crossbar_params["radius"])
-        self._initialize_feature(crossbar_params)
+        self._initialize_feature("crossbar", crossbar_params, alpha)
 
         net_params = {
-            "class": rf.Net,
+            "class": Net,
             "x": crossbar_params["x"] + crossbar_params["radius"] * 2,
             "length": 40 / 12,    # 40" deep
             "width": crossbar_params["width"] + crossbar_params["radius"],
@@ -578,10 +564,10 @@ class Rink(BaseRinkPlot):
             "zorder": 5,
         }
         net_params.update(net)
-        self._initialize_feature(net_params)
+        self._initialize_feature("net", net_params, alpha)
 
-        for added_feature in added_features.values():
-            self._initialize_feature(added_feature)
+        for added_feature_name, added_feature in added_features.items():
+            self._initialize_feature(added_feature_name, added_feature, alpha)
 
 
 class NHLRink(Rink):
@@ -604,7 +590,7 @@ class NHLRink(Rink):
 
         nhl_updates = {
             "crease_notch": {
-                "class": rf.RinkRectangle,
+                "class": RinkRectangle,
                 "x": goal_line_x - 4 - crease_thickness / 2,
                 "y": ((crease.get("width", 8) - notch_width) / 2
                       - crease_thickness),
@@ -645,7 +631,7 @@ class NWHLRink(NHLRink):
             "center_dot": {"visible": False},
             "trapezoid": {"visible": False},
             "logo": {
-                "class": rf.CircularImage,
+                "class": CircularImage,
                 "path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
                 "radius": center_radius,
                 "is_constrained": False,
@@ -689,7 +675,7 @@ class IIHFRink(Rink):
         notch_size = 5 / 12
 
         iihf_updates["crease_notch"] = {
-            "class": rf.RinkL,
+            "class": RinkL,
             "x": goal_line_x - 4,
             "y": 4,
             "length": notch_size,

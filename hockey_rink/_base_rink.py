@@ -6,6 +6,7 @@ Not intended for direct use, only as a parent class.
 
 from abc import ABC
 import hockey_rink.rink_feature as rf
+from itertools import product
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
 import numpy as np
@@ -40,18 +41,22 @@ class BaseRink(ABC):
         self._rotation = None
         self._feature_xlim = None
         self._feature_ylim = None
-        self._features = []
-        self._boards_constraint = None
-        self._half_nzone_length = 0
-        self._blue_line_thickness = 0
-        self.alpha = None
+        self._features = {}
 
-    def _initialize_feature(self, params):
+    def _initialize_feature(self, feature_name, params, alpha):
         """ Initialize a feature of the rink at each coordinate it's required.
 
         Parameters:
+            feature_name: str
+                Name of the feature being initialized. Used as the key in the _features dict. If multiple features
+                are being created, all features after the first will include an underscore and number following the
+                feature name.
+
             params: dict
                 The class of the feature and all parameters required to instantiate its class.
+
+            alpha: float
+                Universal alpha parameter to set transparency of all features that don't override it.
         """
 
         feature_class = params.pop("class")
@@ -62,20 +67,21 @@ class BaseRink(ABC):
         x_reflections = [False, True] if params.pop("reflect_x", False) else [False]
         y_reflections = [False, True] if params.pop("reflect_y", False) else [False]
 
-        params["alpha"] = params.get("alpha", self.alpha)
+        params["alpha"] = params.get("alpha", alpha)
 
-        for x in xs:
-            for y in ys:
-                for x_reflection in x_reflections:
-                    for y_reflection in y_reflections:
-                        feature_params = dict(params)
+        for i, (x, y, x_reflection, y_reflection) in enumerate(
+            product(xs, ys, x_reflections, y_reflections)
+        ):
+            feature_params = dict(params)
 
-                        feature_params["x"] = x * (-1 if x_reflection else 1)
-                        feature_params["y"] = y * (-1 if y_reflection else 1)
-                        feature_params["is_reflected_x"] = x_reflection
-                        feature_params["is_reflected_y"] = y_reflection
+            feature_params["x"] = x * (-1 if x_reflection else 1)
+            feature_params["y"] = y * (-1 if y_reflection else 1)
+            feature_params["is_reflected_x"] = x_reflection
+            feature_params["is_reflected_y"] = y_reflection
 
-                        self._features.append(feature_class(**feature_params))
+            numeral = f"_{i}" if i else ""
+
+            self._features[f"{feature_name}{numeral}"] = feature_class(**feature_params)
 
     def _add_boards_constraint(self, ax, transform=None):
         """ Add the boards constraint to the rink to avoid features extending beyond boards.
@@ -93,7 +99,7 @@ class BaseRink(ABC):
 
         transform = transform or ax.transData
 
-        constraint = self._boards_constraint.get_constraint()
+        constraint = self._features["boards"].get_constraint()
         constraint.set_transform(transform)
         ax.add_patch(constraint)
 
@@ -109,7 +115,19 @@ class BaseRink(ABC):
         ylim = self.copy_(ylim)
 
         # if boards are included in the limits, need to include their thickness
-        half_length = self._boards_constraint.length / 2 + thickness
+        half_length = self._features["boards"].length / 2 + thickness
+
+        # if nzone exists, its length may be needed to calculate xlim
+        try:
+            half_nzone_length = self._features.get("nzone").length / 2
+        except AttributeError:
+            half_nzone_length = 0
+
+        # if blue_line exists, its thickness may be needed to calculate xlim
+        try:
+            blue_line_thickness = self._features.get("blue_line").thickness
+        except AttributeError:
+            blue_line_thickness = 0
 
         if xlim is None:
             equivalencies = {
@@ -124,10 +142,10 @@ class BaseRink(ABC):
             xlims = {
                 "offense": (0, half_length),
                 "defense": (-half_length, 0),
-                "ozone": (self._half_nzone_length, half_length),
-                "nzone": (-self._half_nzone_length - self._blue_line_thickness,
-                          self._half_nzone_length + self._blue_line_thickness),
-                "dzone": (-half_length, -self._half_nzone_length),
+                "ozone": (half_nzone_length, half_length),
+                "nzone": (-half_nzone_length - blue_line_thickness,
+                          half_nzone_length + blue_line_thickness),
+                "dzone": (-half_length, -half_nzone_length),
             }
 
             xlim = xlims.get(display_range, (-half_length, half_length))
@@ -142,7 +160,7 @@ class BaseRink(ABC):
 
                 xlim = (xlim, half_length)
 
-        half_width = self._boards_constraint.width / 2 + thickness
+        half_width = self._features["boards"].width / 2 + thickness
         if ylim is None:
             ylim = (-half_width, half_width)
         else:
@@ -268,7 +286,7 @@ class BaseRink(ABC):
 
         constraint = self._add_boards_constraint(ax, transform)
 
-        for feature in self._features:
+        for feature in self._features.values():
             drawn_feature = feature.draw(ax, transform)
 
             if feature.is_constrained:
@@ -279,7 +297,7 @@ class BaseRink(ABC):
             else:
                 # need to track outer bounds of unconstrained features to properly set xlim and ylim
                 try:
-                    visible = feature.visible
+                    visible = feature.polygon_kwargs.get("visible", True)
                 except AttributeError:
                     visible = True
 
@@ -349,10 +367,10 @@ class BaseRink(ABC):
         if ax is None:
             ax = plt.gca()
 
-        x, y = self._boards_constraint.get_constraint_xy()
+        x, y = self._features["boards"].get_constraint_xy()
 
         xlim, ylim = self._get_limits(display_range, xlim, ylim,
-                                      self._boards_constraint.thickness)
+                                      self._features["boards"].thickness)
 
         mask = (x >= xlim[0]) & (x <= xlim[1]) & (y >= ylim[0]) & (y <= ylim[1])
         x = np.concatenate((x[mask], xlim, xlim))
