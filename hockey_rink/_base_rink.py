@@ -5,7 +5,7 @@ Not intended for direct use, only as a parent class.
 
 
 from abc import ABC
-import hockey_rink.rink_feature as rf
+from hockey_rink.rink_feature import Boards
 from itertools import product
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
@@ -301,7 +301,7 @@ class BaseRink(ABC):
                 except AttributeError:
                     visible = True
 
-                if visible and not isinstance(feature, rf.Boards):
+                if visible and not isinstance(feature, Boards):
                     try:
                         feature_x, feature_y = feature.get_polygon_xy()
 

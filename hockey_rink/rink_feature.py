@@ -552,19 +552,49 @@ class Crease(RinkFeature):
             height=half_width - self.thickness,
             thickness=self.thickness,
             theta1=90,
-            theta2=0,
+            theta2=-90,
             resolution=self.resolution,
         )
 
+        # The x-coordinates are negative because the crease is opposite
+        # of the side of ice its on (eg the crease on the right side of the
+        # ice goes to the left).
+
         # Crease.
         if self.thickness == 0:
-            x = np.concatenate(([0, 0], -arc_x))
-            y = np.concatenate(([0, half_width], arc_y))
+            x = np.concatenate((
+                [0, 0],
+                -arc_x,
+                [0, 0],
+            ))
+            y = np.concatenate((
+                [0, half_width],
+                arc_y,
+                [-half_width, 0],
+            ))
 
         # Crease outline.
         else:
-            x = np.concatenate(([0], -arc_x, [0]))
-            y = np.concatenate(([half_width - self.thickness], arc_y, [half_width]))
+            inner_arc_x, outer_arc_x = np.reshape(arc_x, (2, -1))
+            inner_arc_y, outer_arc_y = np.reshape(arc_y, (2, -1))
+
+            x = np.concatenate((
+                [0],  # Top inside.
+                -inner_arc_x,  # Inside arc.
+                [0],  # Bottom inside.
+                [0],  # Bottom outside.
+                -outer_arc_x,  # Outside arc.
+                [0],  # Top outside.
+            ))
+
+            y = np.concatenate((
+                [half_width - self.thickness],  # Top inside.
+                inner_arc_y,  # Inside arc.
+                [self.thickness - half_width],  # Bottom inside.
+                [-half_width],  # Bottom outside.
+                outer_arc_y,  # Outside arc.
+                [half_width],  # Top outside.
+            ))
 
         return x, y
 

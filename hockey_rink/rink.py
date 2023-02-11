@@ -519,7 +519,7 @@ class Rink(BaseRinkPlot):
             "width": 8,    # 8' from outside edge to outside edge
             "radius": 1.5,    # total length 6'
             "reflect_x": True,
-            "reflect_y": True,
+            "reflect_y": False,
             "color": "lightblue",
         }
         crease_params.update(crease)
