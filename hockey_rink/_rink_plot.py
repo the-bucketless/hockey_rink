@@ -128,11 +128,11 @@ class BaseRinkPlot(BaseRink):
 
         values = values.astype("float32")
 
-        center_x = self._boards_constraint.length / 2 - self._boards_constraint.radius
-        center_y = self._boards_constraint.width / 2 - self._boards_constraint.radius
+        center_x = self._boards.length / 2 - self._boards.radius
+        center_y = self._boards.width / 2 - self._boards.radius
 
         mask = ((x > center_x) & (y > center_y)
-                & ((center_x - x) ** 2 + (center_y - y) ** 2 > self._boards_constraint.radius ** 2))
+                & ((center_x - x) ** 2 + (center_y - y) ** 2 > self._boards.radius ** 2))
         values[mask] = np.nan
 
         return values

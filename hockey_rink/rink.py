@@ -2,9 +2,8 @@
 
 
 from hockey_rink._rink_plot import BaseRinkPlot
-from hockey_rink.rink_feature import *
+from hockey_rink.base_features import *
 from itertools import product
-from matplotlib.transforms import Affine2D
 import numpy as np
 
 
@@ -105,6 +104,9 @@ class Rink(BaseRinkPlot):
             100: boards
 
         Parameters:
+            rotation: float (default=0)
+                Degree to rotate the rink.
+
             x_shift: float; default: 0
                 Amount x-coordinates are to be shifted.
 
@@ -252,37 +254,13 @@ class Rink(BaseRinkPlot):
                 attributes to be used.
         """
 
-        self._rotation = Affine2D().rotate_deg(rotation)
+        super().__init__(rotation, x_shift, y_shift, alpha, boards)
 
-        self.x_shift = x_shift
-        self.y_shift = y_shift
-
-        self._features = {}
         self._feature_xlim = None
         self._feature_ylim = None
 
-        boards = boards or {}
-        board_params = {
-            "length": 200,
-            "width": 85,
-            "thickness": 1,
-            "radius": 28,
-            "color": "black",
-            "zorder": 100,
-        }
-        required_boards = {
-            "class": Boards,
-            "x": 0,
-            "y": 0,
-            "reflect_x": False,
-            "reflect_y": False,
-            "is_constrained": False,
-        }
-        board_params = {**board_params, **boards, **required_boards}
-        self._initialize_feature("boards", board_params, alpha)
-
-        half_length = board_params["length"] / 2
-        half_width = board_params["width"] / 2
+        half_length = self._boards.length / 2
+        half_width = self._boards.width / 2
 
         nzone = nzone or {}
         nzone_params = {
@@ -293,7 +271,7 @@ class Rink(BaseRinkPlot):
             "class": RinkRectangle,
             "x": 0,
             "y": 0,
-            "width": board_params["width"],
+            "width": self._boards.width,
             "reflect_x": False,
             "reflect_y": False,
         }
@@ -312,7 +290,7 @@ class Rink(BaseRinkPlot):
             "x": ozone_length / 2 + half_nzone_length,
             "y": 0,
             "length": ozone_length,
-            "width": board_params["width"],
+            "width": self._boards.width,
             "reflect_x": False,
             "reflect_y": False,
         }
@@ -328,7 +306,7 @@ class Rink(BaseRinkPlot):
             "x": -ozone_params["x"],
             "y": 0,
             "length": ozone_length,
-            "width": board_params["width"],
+            "width": self._boards.width,
             "reflect_x": False,
             "reflect_y": False,
         }
@@ -339,7 +317,7 @@ class Rink(BaseRinkPlot):
         red_line_params = {
             "class": RinkRectangle,
             "length": 1,
-            "width": board_params["width"],
+            "width": self._boards.width,
             "color": "red",
             "zorder": 10,
         }
@@ -350,7 +328,7 @@ class Rink(BaseRinkPlot):
         blue_line_params = {
             "class": RinkRectangle,
             "length": 1,
-            "width": board_params["width"],
+            "width": self._boards.width,
             "reflect_x": True,
             "color": "blue",
             "zorder": 10,
@@ -365,7 +343,7 @@ class Rink(BaseRinkPlot):
         goal_line_params = {
             "class": RinkRectangle,
             "length": line_thickness,
-            "width": board_params["width"],
+            "width": self._boards.width,
             "reflect_x": True,
             "color": line_color,
             "zorder": line_zorder,
@@ -435,12 +413,12 @@ class Rink(BaseRinkPlot):
             "class": FaceoffCircle,
             # 20' from front edge of goal line
             "x": goal_line_params["x"] - goal_line_params["length"] / 2 - 20,
-            "y": 22,    # 44' between faceoff dots
-            "length": 67 / 12,    # 5'7" between inside edges of hashmarks
-            "width": 2,    # hashmarks are 2' long
+            "y": 22,  # 44' between faceoff dots
+            "length": 67 / 12,  # 5'7" between inside edges of hashmarks
+            "width": 2,  # hashmarks are 2' long
             "thickness": line_thickness,
             "radius": center_circle_params["radius"],
-            "resolution": 5000,    # increase resolution to keep lines straight
+            "resolution": 5000,  # increase resolution to keep lines straight
             "reflect_x": True,
             "reflect_y": True,
             "color": line_color,
@@ -458,7 +436,7 @@ class Rink(BaseRinkPlot):
             # ozone faceoff circles and 5' from the blue line
             "x": [*ozone_dot_x, half_nzone_length - 5],
             "y": dot_y,
-            "length": 16 / 12,    # edge to edge of inner shape
+            "length": 16 / 12,  # edge to edge of inner shape
             "thickness": 1 / 12,
             "radius": 1,
             "reflect_x": True,
@@ -515,9 +493,9 @@ class Rink(BaseRinkPlot):
         crease_params = {
             "class": Crease,
             "x": goal_line_params["x"] - goal_line_params["length"] / 2,
-            "length": 4.5,    # 4'6" rectangular section
-            "width": 8,    # 8' from outside edge to outside edge
-            "radius": 1.5,    # total length 6'
+            "length": 4.5,  # 4'6" rectangular section
+            "width": 8,  # 8' from outside edge to outside edge
+            "radius": 1.5,  # total length 6'
             "reflect_x": True,
             "reflect_y": False,
             "color": "lightblue",
@@ -555,9 +533,9 @@ class Rink(BaseRinkPlot):
         net_params = {
             "class": Net,
             "x": crossbar_params["x"] + crossbar_params["radius"] * 2,
-            "length": 40 / 12,    # 40" deep
+            "length": 40 / 12,  # 40" deep
             "width": crossbar_params["width"] + crossbar_params["radius"],
-            "thickness": 88 / 12,    # max width
+            "thickness": 88 / 12,  # max width
             "radius": 20 / 12,
             "reflect_x": True,
             "color": "grey",
@@ -632,7 +610,7 @@ class NWHLRink(NHLRink):
                 "thickness": center_thickness,
                 "color": "#003366",
                 "zorder": 12,
-                "linewidth": 0,    # Avoid drawing line in circle when alpha isn't 1.
+                "linewidth": 0,  # Avoid drawing line in circle when alpha isn't 1.
             },
             "center_dot": {"visible": False},
             "trapezoid": {"visible": False},

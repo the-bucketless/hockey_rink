@@ -5,7 +5,7 @@ Not intended for direct use, only as a parent class.
 
 
 from abc import ABC
-from hockey_rink.rink_feature import Boards
+from hockey_rink.rink_features import Boards
 from itertools import product
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
@@ -35,12 +35,47 @@ class BaseRink(ABC):
             align with the drawing, not to alter the drawing to align with the coordinates.
     """
 
-    def __init__(self):
-        self.x_shift = 0
-        self.y_shift = 0
-        self._rotation = None
+    def __init__(self, rotation=0, x_shift=0, y_shift=0, alpha=None, boards=None):
+        """ Initializes attributes.
+
+        Parameters:
+            rotation: float (default=0)
+                Degree to rotate the rink.
+
+            x_shift: float (default=0)
+                Amount x-coordinates are to be shifted.
+
+                When viewing the rink horizontally, the coordinate of the center of the ice surface from left to right.
+                    eg) If using data with a coordinate system that goes from 0 to 200, x_shift should be 100.
+
+                The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
+                align with the drawing, not to alter the drawing to align with the coordinates.
+
+            y_shift: float (default=0)
+                Amount y-coordinates are to be shifted.
+
+                When viewing the rink horizontally, the coordinate of the center of the ice surface from bottom to top.
+                    eg) If using data with a coordinate system that goes from 0 to 85, y_shift should be 42.5.
+
+                The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
+                align with the drawing, not to alter the drawing to align with the coordinates.
+
+            alpha: float (default=0)
+                The alpha blending value, between 0 (transparent) and 1 (opaque).
+
+                If not None, will be used for all features of the rink that don't override it.
+
+            boards: dict (optional)
+                Attributes for the Boards object.
+        """
+
+        self.x_shift = x_shift
+        self.y_shift = y_shift
+        self._rotation = Affine2D().rotate_deg(rotation)
         self._feature_xlim = None
         self._feature_ylim = None
+        boards = boards or {}
+        self._boards = Boards(alpha=alpha, **boards)
         self._features = {}
 
     def _initialize_feature(self, feature_name, params, alpha):
@@ -99,7 +134,7 @@ class BaseRink(ABC):
 
         transform = transform or ax.transData
 
-        constraint = self._features["boards"].get_constraint()
+        constraint = self._boards.get_constraint()
         constraint.set_transform(transform)
         ax.add_patch(constraint)
 
@@ -115,7 +150,7 @@ class BaseRink(ABC):
         ylim = self.copy_(ylim)
 
         # if boards are included in the limits, need to include their thickness
-        half_length = self._features["boards"].length / 2 + thickness
+        half_length = self._boards.length / 2 + thickness
 
         # if nzone exists, its length may be needed to calculate xlim
         try:
@@ -160,7 +195,7 @@ class BaseRink(ABC):
 
                 xlim = (xlim, half_length)
 
-        half_width = self._features["boards"].width / 2 + thickness
+        half_width = self._boards.width / 2 + thickness
         if ylim is None:
             ylim = (-half_width, half_width)
         else:
@@ -286,6 +321,8 @@ class BaseRink(ABC):
 
         constraint = self._add_boards_constraint(ax, transform)
 
+        self._boards.draw(ax, transform)
+
         for feature in self._features.values():
             drawn_feature = feature.draw(ax, transform)
 
@@ -297,27 +334,27 @@ class BaseRink(ABC):
             else:
                 # need to track outer bounds of unconstrained features to properly set xlim and ylim
                 try:
-                    visible = feature.polygon_kwargs.get("visible", True)
+                    if not feature.polygon_kwargs.get("visible", True):
+                        continue
                 except AttributeError:
-                    visible = True
+                    pass
 
-                if visible and not isinstance(feature, Boards):
-                    try:
-                        feature_x, feature_y = feature.get_polygon_xy()
+                try:
+                    feature_x, feature_y = feature.get_polygon_xy()
 
-                        if self._feature_xlim is None:
-                            self._feature_xlim = [np.min(feature_x), np.max(feature_x)]
-                        else:
-                            self._feature_xlim = [min(self._feature_xlim[0], np.min(feature_x)),
-                                                  max(self._feature_xlim[1], np.max(feature_x))]
+                    if self._feature_xlim is None:
+                        self._feature_xlim = [np.min(feature_x), np.max(feature_x)]
+                    else:
+                        self._feature_xlim = [min(self._feature_xlim[0], np.min(feature_x)),
+                                              max(self._feature_xlim[1], np.max(feature_x))]
 
-                        if self._feature_ylim is None:
-                            self._feature_ylim = [np.min(feature_y), np.max(feature_y)]
-                        else:
-                            self._feature_ylim = [min(self._feature_ylim[0], np.min(feature_y)),
-                                                  max(self._feature_ylim[1], np.max(feature_y))]
-                    except TypeError:
-                        pass
+                    if self._feature_ylim is None:
+                        self._feature_ylim = [np.min(feature_y), np.max(feature_y)]
+                    else:
+                        self._feature_ylim = [min(self._feature_ylim[0], np.min(feature_y)),
+                                              max(self._feature_ylim[1], np.max(feature_y))]
+                except TypeError:
+                    pass
 
         ax = self.set_display_range(ax, display_range, xlim, ylim)
 
@@ -367,10 +404,10 @@ class BaseRink(ABC):
         if ax is None:
             ax = plt.gca()
 
-        x, y = self._features["boards"].get_constraint_xy()
+        x, y = self._boards.get_constraint_xy()
 
         xlim, ylim = self._get_limits(display_range, xlim, ylim,
-                                      self._features["boards"].thickness)
+                                      self._boards.thickness)
 
         mask = (x >= xlim[0]) & (x <= xlim[1]) & (y >= ylim[0]) & (y <= ylim[1])
         x = np.concatenate((x[mask], xlim, xlim))
