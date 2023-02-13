@@ -22,7 +22,8 @@ class Boards(RinkFeature):
         radius=28, resolution=500,
         is_reflected_x=False, is_reflected_y=False,
         is_constrained=False,
-        color="black", zorder=100,
+        visible=True, color="black", zorder=100,
+        rink=None,
         **polygon_kwargs,
     ):
         """ Initialize attributes.
@@ -38,19 +39,21 @@ class Boards(RinkFeature):
             is_reflected_x: bool (default=False)
             is_reflected_y: bool (default=False)
             is_constrained: bool (default=False)
+            visible: bool (default=True)
             color: color (default="black")
             zorder: float (default=100)
+            rink: Rink (optional)
             polygon_kwargs: dict (optional)
         """
 
-        polygon_kwargs["color"] = color
-        polygon_kwargs["zorder"] = zorder
         super().__init__(
             x, y,
             length, width, thickness,
             radius, resolution,
             is_reflected_x, is_reflected_y,
             is_constrained,
+            visible, color, zorder,
+            rink,
             **polygon_kwargs,
         )
 

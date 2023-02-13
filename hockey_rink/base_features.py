@@ -35,6 +35,7 @@ from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
 import numpy as np
+import weakref
 
 
 class RinkFeature(ABC):
@@ -73,6 +74,12 @@ class RinkFeature(ABC):
         is_constrained: bool
             Whether or not the feature is constrained to remain inside the boards.
 
+        visible: bool
+            Whether or not the feature will be drawn.
+
+        rink: weakref.ref(Rink)
+            Weak reference to the Rink object that the feature belongs to.
+
         polygon_kwargs: dict
             Any additional arguments to be passed to plt.Polygon.
     """
@@ -84,6 +91,8 @@ class RinkFeature(ABC):
         radius=0, resolution=500,
         is_reflected_x=False, is_reflected_y=False,
         is_constrained=True,
+        visible=True, color=None, zorder=None,
+        rink=None,
         **polygon_kwargs,
     ):
         """ Initialize attributes.
@@ -99,6 +108,10 @@ class RinkFeature(ABC):
             is_reflected_x: bool (default=False)
             is_reflected_y: bool (default=False)
             is_constrained: bool (default=True)
+            visible: bool (default=True)
+            color: color (optional)
+            zorder: float (optional)
+            rink: Rink (optional)
             polygon_kwargs: dict (optional)
         """
 
@@ -112,7 +125,13 @@ class RinkFeature(ABC):
         self.is_reflected_x = is_reflected_x
         self.is_reflected_y = is_reflected_y
         self.is_constrained = is_constrained
+        self.visible = visible
+        self.rink = rink if rink is None else weakref.ref(rink)
         self.polygon_kwargs = polygon_kwargs
+
+        if color is not None:
+            self.polygon_kwargs["color"] = color
+        self.polygon_kwargs["zorder"] = zorder
 
     @abstractmethod
     def get_centered_xy(self):
@@ -251,6 +270,9 @@ class RinkFeature(ABC):
             plt.Polygon
         """
 
+        if not self.visible:
+            return None
+
         if ax is None:
             ax = plt.gca()
 
@@ -259,6 +281,13 @@ class RinkFeature(ABC):
         patch = self.get_polygon()
         ax.add_patch(patch)
         patch.set_transform(transform)
+
+        if self.is_constrained:
+            try:
+                constraint = self.rink().get_boards_constraint(ax, transform)
+                patch.set_clip_path(constraint)
+            except (AttributeError, TypeError):
+                pass
 
         return patch
 

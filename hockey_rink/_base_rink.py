@@ -113,12 +113,13 @@ class BaseRink(ABC):
             feature_params["y"] = y * (-1 if y_reflection else 1)
             feature_params["is_reflected_x"] = x_reflection
             feature_params["is_reflected_y"] = y_reflection
+            feature_params["rink"] = self
 
             numeral = f"_{i}" if i else ""
 
             self._features[f"{feature_name}{numeral}"] = feature_class(**feature_params)
 
-    def _add_boards_constraint(self, ax, transform=None):
+    def get_boards_constraint(self, ax=None, transform=None):
         """ Add the boards constraint to the rink to avoid features extending beyond boards.
 
         Parameters:
@@ -131,6 +132,9 @@ class BaseRink(ABC):
         Returns:
             matplotlib Polygon
         """
+
+        if ax is None:
+            ax = plt.gca()
 
         transform = transform or ax.transData
 
@@ -319,42 +323,36 @@ class BaseRink(ABC):
 
         transform = self._get_transform(ax)
 
-        constraint = self._add_boards_constraint(ax, transform)
-
         self._boards.draw(ax, transform)
 
         for feature in self._features.values():
-            drawn_feature = feature.draw(ax, transform)
+            feature_patch = feature.draw(ax, transform)
 
-            if feature.is_constrained:
-                try:
-                    drawn_feature.set_clip_path(constraint)
-                except AttributeError:
-                    pass
-            else:
-                # need to track outer bounds of unconstrained features to properly set xlim and ylim
-                try:
-                    if not feature.polygon_kwargs.get("visible", True):
-                        continue
-                except AttributeError:
-                    pass
+            try:
+                is_constrained = feature.is_constrained
+            except AttributeError:
+                is_constrained = False
 
-                try:
-                    feature_x, feature_y = feature.get_polygon_xy()
+            if feature_patch is None or is_constrained:
+                continue
 
-                    if self._feature_xlim is None:
-                        self._feature_xlim = [np.min(feature_x), np.max(feature_x)]
-                    else:
-                        self._feature_xlim = [min(self._feature_xlim[0], np.min(feature_x)),
-                                              max(self._feature_xlim[1], np.max(feature_x))]
+            # need to track outer bounds of unconstrained features to properly set xlim and ylim
+            try:
+                feature_x, feature_y = feature.get_polygon_xy()
 
-                    if self._feature_ylim is None:
-                        self._feature_ylim = [np.min(feature_y), np.max(feature_y)]
-                    else:
-                        self._feature_ylim = [min(self._feature_ylim[0], np.min(feature_y)),
-                                              max(self._feature_ylim[1], np.max(feature_y))]
-                except TypeError:
-                    pass
+                if self._feature_xlim is None:
+                    self._feature_xlim = [np.min(feature_x), np.max(feature_x)]
+                else:
+                    self._feature_xlim = [min(self._feature_xlim[0], np.min(feature_x)),
+                                          max(self._feature_xlim[1], np.max(feature_x))]
+
+                if self._feature_ylim is None:
+                    self._feature_ylim = [np.min(feature_y), np.max(feature_y)]
+                else:
+                    self._feature_ylim = [min(self._feature_ylim[0], np.min(feature_y)),
+                                          max(self._feature_ylim[1], np.max(feature_y))]
+            except TypeError:
+                pass
 
         ax = self.set_display_range(ax, display_range, xlim, ylim)
 

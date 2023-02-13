@@ -115,7 +115,7 @@ class BaseRinkPlot(BaseRink):
         except TypeError:
             plot_features = [plot_features]
 
-        constraint = self._add_boards_constraint(ax, transform)
+        constraint = self.get_boards_constraint(ax, transform)
 
         for plot_feature in plot_features:
             plot_feature.set_clip_path(constraint)
