@@ -1,12 +1,11 @@
-from hockey_rink.base_features import RinkFeature
+from hockey_rink.base_features import RoundedRectangle
 import matplotlib.pyplot as plt
-import numpy as np
 
 
-class Boards(RinkFeature):
+class Boards(RoundedRectangle):
     """ The boards around the rink.
 
-    Inherits from RinkFeature.
+    Inherits from RoundedRectangle.
 
     The length and width attributes are the size of the ice surface, not including the thickness of the boards. When
     thickness is 0, the boards will not be drawn.
@@ -46,6 +45,11 @@ class Boards(RinkFeature):
             polygon_kwargs: dict (optional)
         """
 
+        # Avoid drawing boards when thickness is 0.
+        if thickness == 0:
+            polygon_kwargs["fill"] = polygon_kwargs.get("fill", False)
+            polygon_kwargs["linewidth"] = polygon_kwargs.get("linewidth", 0)
+
         super().__init__(
             x, y,
             length, width, thickness,
@@ -56,60 +60,6 @@ class Boards(RinkFeature):
             rink,
             **polygon_kwargs,
         )
-
-    def get_centered_xy(self):
-        end_x = self.length / 2
-        end_y = self.width / 2
-
-        center_x = end_x - self.radius
-        center_y = end_y - self.radius
-
-        arc_x, arc_y = self.arc_coords(
-            center=(center_x, center_y),
-            width=self.radius,
-            thickness=self.thickness,
-            theta1=90,
-            theta2=0,
-        )
-
-        # Still need coordinates when thickness is 0. Reversing the inner arc coordinates will result in the
-        # boards not being drawn while still having coordinates.
-        if self.thickness == 0:
-            inner_arc_x = arc_x
-            outer_arc_x = arc_x[::-1]
-            inner_arc_y = arc_y
-            outer_arc_y = arc_y[::-1]
-        else:
-            inner_arc_x, outer_arc_x = np.reshape(arc_x, (2, -1))
-            inner_arc_y, outer_arc_y = np.reshape(arc_y, (2, -1))
-
-        board_x = np.concatenate((
-            inner_arc_x,    # Inside top right corner.
-            inner_arc_x[::-1],    # Inside bottom right corner.
-            -inner_arc_x,    # Inside bottom left corner.
-            -inner_arc_x[::-1],    # Inside top left corner.
-            inner_arc_x[:1],    # Start of inside top left corner.
-            outer_arc_x[-1:],    # End of inside top left corner.
-            -outer_arc_x[::-1],    # Outside top left corner.
-            -outer_arc_x,    # Outside bottom left corner.
-            outer_arc_x[::-1],    # Outside bottom right corner.
-            outer_arc_x,    # Outside top right corner.
-        ))
-
-        board_y = np.concatenate((
-            inner_arc_y,    # Inside corner.
-            -inner_arc_y[::-1],    # Inside bottom right corner.
-            -inner_arc_y,    # Inside bottom left corner.
-            inner_arc_y[::-1],    # Inside top left corner.
-            inner_arc_y[:1],    # Start of inside top left corner.
-            outer_arc_y[-1:],    # End of inside top left corner.
-            outer_arc_y[::-1],    # Outside top left corner.
-            -outer_arc_y,    # Outside bottom left corner.
-            -outer_arc_y[::-1],    # Outside bottom right corner.
-            outer_arc_y,    # Outside top right corner.
-        ))
-
-        return board_x, board_y
 
     def get_constraint_xy(self):
         """ Determines the x and y-coordinates necessary for bounding the rink by the boards. Only the inner arc of
@@ -122,8 +72,9 @@ class Boards(RinkFeature):
         x, y = self.get_polygon_xy()
 
         # Only want the inside edge of the boards.
-        x = x[:len(x) // 2]
-        y = y[:len(y) // 2]
+        if self.thickness:
+            x = x[:len(x) // 2]
+            y = y[:len(y) // 2]
 
         return x, y
 

@@ -12,6 +12,7 @@ Currently available features are:
     Net
     CircularImage
     LowerInwardArcRectangle
+    RoundedRectangle
 """
 
 
@@ -28,6 +29,7 @@ __all__ = [
     "Net",
     "CircularImage",
     "LowerInwardArcRectangle",
+    "RoundedRectangle",
 ]
 
 
@@ -708,5 +710,67 @@ class LowerInwardArcRectangle(RinkFeature):
 
         x = np.concatenate([arc_x, [-half_length, half_length]])
         y = np.concatenate([arc_y, [self.width, self.width]])
+
+        return x, y
+
+
+class RoundedRectangle(RinkFeature):
+    """ A rounded rectangle to be drawn on the rink (typically, the boards).
+
+    Inherits from RinkFeature.
+
+    The radius attribute is the radius of the arc for rounded edges. Inappropriate values will lead to
+    unusual shapes.
+    """
+
+    def get_centered_xy(self):
+        end_x = self.length / 2
+        end_y = self.width / 2
+
+        center_x = end_x - self.radius
+        center_y = end_y - self.radius
+
+        arc_x, arc_y = self.arc_coords(
+            center=(center_x, center_y),
+            width=self.radius,
+            thickness=self.thickness,
+            theta1=90,
+            theta2=0,
+        )
+
+        if self.thickness == 0:
+            inner_arc_x = arc_x
+            outer_arc_x = np.array([])
+            inner_arc_y = arc_y
+            outer_arc_y = np.array([])
+        else:
+            inner_arc_x, outer_arc_x = np.reshape(arc_x, (2, -1))
+            inner_arc_y, outer_arc_y = np.reshape(arc_y, (2, -1))
+
+        x = np.concatenate((
+            inner_arc_x,    # Inside top right corner.
+            inner_arc_x[::-1],    # Inside bottom right corner.
+            -inner_arc_x,    # Inside bottom left corner.
+            -inner_arc_x[::-1],    # Inside top left corner.
+            inner_arc_x[:1],    # Start of inside top left corner.
+            outer_arc_x[-1:],    # End of inside top left corner.
+            -outer_arc_x[::-1],    # Outside top left corner.
+            -outer_arc_x,    # Outside bottom left corner.
+            outer_arc_x[::-1],    # Outside bottom right corner.
+            outer_arc_x,    # Outside top right corner.
+        ))
+
+        y = np.concatenate((
+            inner_arc_y,    # Inside corner.
+            -inner_arc_y[::-1],    # Inside bottom right corner.
+            -inner_arc_y,    # Inside bottom left corner.
+            inner_arc_y[::-1],    # Inside top left corner.
+            inner_arc_y[:1],    # Start of inside top left corner.
+            outer_arc_y[-1:],    # End of inside top left corner.
+            outer_arc_y[::-1],    # Outside top left corner.
+            -outer_arc_y,    # Outside bottom left corner.
+            -outer_arc_y[::-1],    # Outside bottom right corner.
+            outer_arc_y,    # Outside top right corner.
+        ))
 
         return x, y
