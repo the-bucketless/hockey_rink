@@ -72,11 +72,10 @@ class BaseRink(ABC):
         self.x_shift = x_shift
         self.y_shift = y_shift
         self._rotation = Affine2D().rotate_deg(rotation)
-        self._feature_xlim = None
-        self._feature_ylim = None
         boards = boards or {}
         self._boards = Boards(alpha=alpha, **boards)
         self._features = {}
+        self._feature_xlim, self._feature_ylim = self._boards.get_limits()
 
     def _initialize_feature(self, feature_name, params, alpha):
         """ Initialize a feature of the rink at each coordinate it's required.
@@ -97,7 +96,7 @@ class BaseRink(ABC):
         feature_class = params.pop("class")
 
         if params.pop("is_constrained", True):
-            params["clip_path"] = self._boards.get_path_for_clip()
+            params["clip_xy"] = self._boards.get_xy_for_clip()
 
         xs = np.ravel(params.get("x", [0]))
         ys = np.ravel(params.get("y", [0]))
@@ -121,29 +120,31 @@ class BaseRink(ABC):
 
             self._features[f"{feature_name}{numeral}"] = feature_class(**feature_params)
 
-    def _get_limits(self, display_range="full", xlim=None, ylim=None, thickness=0):
+    def _get_limits(self, display_range="full", xlim=None, ylim=None):
         """ Return the xlim and ylim values corresponding to the parameters.
 
         Doesn't allow for coordinates extending beyond the extent of the boards.
         """
 
-        xlim = self.copy_(xlim)
-        ylim = self.copy_(ylim)
-
         # if boards are included in the limits, need to include their thickness
-        half_length = self._boards.length / 2 + thickness
+        half_length = self._boards.length / 2 + self._boards.thickness
 
-        # if nzone exists, its length may be needed to calculate xlim
+        # If nzone exists, its length may be needed to calculate xlim.
         try:
             half_nzone_length = self._features.get("nzone").length / 2
         except AttributeError:
             half_nzone_length = 0
 
-        # if blue_line exists, its thickness may be needed to calculate xlim
-        try:
-            blue_line_thickness = self._features.get("blue_line").thickness
-        except AttributeError:
-            blue_line_thickness = 0
+        # Blue line is needed to calculate xlim when display_range is "nzone".
+        # It's possible blue lines have different sizes or that one or either don't exist.
+        o_blue_line_thickness = 0
+        d_blue_line_thickness = 0
+        for feature_name, feature in self._features.items():
+            if "blue_line" in feature_name:
+                if feature.x >= 0:
+                    o_blue_line_thickness = feature.length
+                else:
+                    d_blue_line_thickness = feature.length
 
         if xlim is None:
             equivalencies = {
@@ -159,8 +160,8 @@ class BaseRink(ABC):
                 "offense": (0, half_length),
                 "defense": (-half_length, 0),
                 "ozone": (half_nzone_length, half_length),
-                "nzone": (-half_nzone_length - blue_line_thickness,
-                          half_nzone_length + blue_line_thickness),
+                "nzone": (-half_nzone_length - d_blue_line_thickness,
+                          half_nzone_length + o_blue_line_thickness),
                 "dzone": (-half_length, -half_nzone_length),
             }
 
@@ -176,7 +177,7 @@ class BaseRink(ABC):
 
                 xlim = (xlim, half_length)
 
-        half_width = self._boards.width / 2 + thickness
+        half_width = self._boards.width / 2 + self._boards.thickness
         if ylim is None:
             ylim = (-half_width, half_width)
         else:
@@ -261,6 +262,7 @@ class BaseRink(ABC):
                 "half" or "offense": The offensive half (largest x-coordinates) of the rink is displayed.
                 "defense": The defensive half (smallest x-coordinates) of the rink is displayed.
                 "ozone": The offensive zone (blue line to end boards) of the rink is displayed.
+                "nzone": The neutral zone (blue line to blue line) of the rink is displayed.
                 "dzone": The defensive zone (end boards to blue line) of the rink is displayed.
 
                 If no acceptable values for display_range, xlim, and ylim are provided, will display the full rink.
@@ -298,33 +300,23 @@ class BaseRink(ABC):
         ax.set_aspect("equal")
         ax.axis("off")
 
+        xlim, ylim = self._get_limits(display_range, xlim, ylim)
         transform = self._get_transform(ax)
-
-        self._boards.draw(ax, transform)
+        self._boards.draw(ax, transform, xlim, ylim)
 
         for feature in self._features.values():
-            feature_patch = feature.draw(ax, transform)
+            feature_patch = feature.draw(ax, transform, xlim, ylim)
 
-            if feature_patch is None or feature.clip_path is not None:
-                continue
-
-            # need to track outer bounds of unconstrained features to properly set xlim and ylim
-            try:
-                feature_x, feature_y = feature.get_polygon_xy()
-
-                if self._feature_xlim is None:
-                    self._feature_xlim = [np.min(feature_x), np.max(feature_x)]
-                else:
-                    self._feature_xlim = [min(self._feature_xlim[0], np.min(feature_x)),
-                                          max(self._feature_xlim[1], np.max(feature_x))]
-
-                if self._feature_ylim is None:
-                    self._feature_ylim = [np.min(feature_y), np.max(feature_y)]
-                else:
-                    self._feature_ylim = [min(self._feature_ylim[0], np.min(feature_y)),
-                                          max(self._feature_ylim[1], np.max(feature_y))]
-            except TypeError:
-                pass
+            # Track outer bounds of features not bounded by the boards.
+            (feature_xmin, feature_xmax), (feature_ymin, feature_ymax) = feature.get_limits()
+            self._feature_xlim = (
+                min(self._feature_xlim[0], feature_xmin),
+                max(self._feature_xlim[1], feature_xmax)
+            )
+            self._feature_ylim = (
+                min(self._feature_ylim[0], feature_ymin),
+                max(self._feature_ylim[1], feature_ymax)
+            )
 
         ax = self.set_display_range(ax, display_range, xlim, ylim)
 
@@ -338,17 +330,12 @@ class BaseRink(ABC):
                 Axes in which to set xlim and ylim.
 
             display_range: {"full", "half", "offense", "defense", "ozone", "dzone"}; default: "full"
-                The portion of the rink to display.  The entire rink is drawn regardless, display_range only
-                affects what is shown.
+                The portion of the rink to display.
 
                 Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
                 xlim if provided.
 
-                If a rotation other than those resulting in the rink being drawn horizontal/vertical, coordinates
-                outside of the display range may be included.
-
-                Features not constrained within the boards (not including the boards) will only be displayed if
-                display_range is "full".
+                Features not bounded by the boards will only be displayed if display_range is "full".
 
                 "full": The entire length of the rink is displayed.
                 "half" or "offense": The offensive half (largest x-coordinates) of the rink is displayed.
@@ -374,25 +361,19 @@ class BaseRink(ABC):
         if ax is None:
             ax = plt.gca()
 
-        x, y = np.split(self._boards.get_path_for_clip().vertices, 2, axis=1)
+        if display_range == "full" and xlim is None and ylim is None:
+            xlim = self._feature_xlim
+            ylim = self._feature_ylim
+        else:
+            xlim, ylim = self._get_limits(display_range, xlim, ylim)
 
-        xlim, ylim = self._get_limits(display_range, xlim, ylim,
-                                      self._boards.thickness)
+        # Need each combination of x and y bounds.
+        x, y = list(zip(*product(xlim, ylim)))
 
-        mask = (x >= xlim[0]) & (x <= xlim[1]) & (y >= ylim[0]) & (y <= ylim[1])
-        x = np.concatenate((x[mask], xlim, xlim))
-        y = np.concatenate((y[mask], ylim, ylim[::-1]))
+        # Need to shift coordinates so convert_xy can reverse shift.
+        x, y = self.convert_xy(np.array(x) + self.x_shift, np.array(y) + self.y_shift)
 
-        if display_range == "full":
-            if self._feature_xlim is not None:
-                x = np.concatenate((x, self._feature_xlim))
-            if self._feature_ylim is not None:
-                y = np.concatenate((y, self._feature_ylim))
-
-        # need to shift so convert_xy can reverse shift
-        xs, ys = self.convert_xy(x + self.x_shift, y + self.y_shift)
-
-        ax.set_xlim(np.min(xs), np.max(xs))
-        ax.set_ylim(np.min(ys), np.max(ys))
+        ax.set_xlim(np.min(x), np.max(x))
+        ax.set_ylim(np.min(y), np.max(y))
 
         return ax

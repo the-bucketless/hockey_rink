@@ -75,8 +75,8 @@ class RinkFeature(ABC):
         visible: bool
             Whether or not the feature will be drawn.
 
-        clip_path: Path
-            Bounds when drawing the object.
+        clip_xy: (np.array, np.array)
+            Coordinates used to clip the feature's coordinates when drawing.
 
         polygon_kwargs: dict
             Any additional arguments to be passed to plt.Polygon.
@@ -89,7 +89,7 @@ class RinkFeature(ABC):
         radius=0, resolution=500,
         is_reflected_x=False, is_reflected_y=False,
         visible=True, color=None, zorder=None,
-        clip_path=None,
+        clip_xy=None,
         **polygon_kwargs,
     ):
         """ Initialize attributes.
@@ -107,7 +107,7 @@ class RinkFeature(ABC):
             visible: bool (default=True)
             color: color (optional)
             zorder: float (optional)
-            clip_path: Path (optional)
+            clip_xy: (np.array, np.array) (optional)
             polygon_kwargs: dict (optional)
         """
 
@@ -121,7 +121,7 @@ class RinkFeature(ABC):
         self.is_reflected_x = is_reflected_x
         self.is_reflected_y = is_reflected_y
         self.visible = visible
-        self.clip_path = clip_path
+        self.clip_xy = clip_xy
         self.polygon_kwargs = polygon_kwargs
 
         if color is not None:
@@ -251,7 +251,7 @@ class RinkFeature(ABC):
 
         return x, y
 
-    def draw(self, ax=None, transform=None, bbox=None):
+    def draw(self, ax=None, transform=None, xlim=None, ylim=None):
         """ Draws the feature.
 
         Parameters:
@@ -261,8 +261,11 @@ class RinkFeature(ABC):
             transform: matplotlib Transform (optional)
                 Transform to apply to the feature.
 
-            bbox: list (optional)
-                [[xmin, ymin], [xmax, ymax]]
+            xlim: tuple
+                (xmin, xmax) to clip x-coordinates.
+
+            ylim: tuple
+                (ymin, ymax) to clip y-coordinates.
 
         Returns:
             plt.Polygon
@@ -277,14 +280,48 @@ class RinkFeature(ABC):
         transform = transform or ax.transData
 
         patch = self.get_polygon()
+
         ax.add_patch(patch)
         patch.set_transform(transform)
 
-        if self.clip_path is not None:
-            self.clip_path.clip_to_bbox(bbox)
-            patch.set_clip_path(self.clip_path, transform)
+        # Early exit if no clipping.
+        if not (self.clip_xy or xlim or ylim):
+            return patch
+
+        # Use either the bounds provided or the feature's own bounds to clip it.
+        (xmin, xmax), (ymin, ymax) = self.get_limits()
+        xlim = (max(xlim[0], xmin), min(xlim[1], xmax)) if xlim else (xmin, xmax)
+        ylim = (max(ylim[0], ymin), min(ylim[1], ymax)) if ylim else (ymin, ymax)
+
+        # Clip based on class attribute.
+        if self.clip_xy:
+            clip_x, clip_y = self.clip_xy
+            clip_x = np.clip(clip_x, *xlim)
+            clip_y = np.clip(clip_y, *ylim)
+
+        # Clip based on bounding box of limits.
+        else:
+            clip_x = [xlim[0], xlim[0], xlim[1], xlim[1]]
+            clip_y = [*ylim, *ylim[::-1]]
+
+        clip_polygon = plt.Polygon(list(zip(clip_x, clip_y)), transform=transform)
+        patch.set_clip_path(clip_polygon)
 
         return patch
+
+    def get_limits(self):
+        """ Find the outer bounds for the x and y-coordinates of the feature.
+
+        Returns:
+            (xmin, xmax), (ymin, ymax)
+        """
+
+        if self.clip_xy is None:
+            x, y = self.get_polygon_xy()
+        else:
+            x, y = self.clip_xy
+
+        return (np.min(x), np.max(x)), (np.min(y), np.max(y))
 
 
 class RinkRectangle(RinkFeature):
@@ -298,16 +335,16 @@ class RinkRectangle(RinkFeature):
         half_width = self.width / 2
 
         x = np.array([
-            -half_length,    # Lower left.
-            half_length,    # Lower right.
-            half_length,    # Upper right.
-            -half_length,    # Upper left.
+            -half_length,  # Lower left.
+            half_length,  # Lower right.
+            half_length,  # Upper right.
+            -half_length,  # Upper left.
         ])
         y = np.array([
-            -half_width,    # Lower left.
-            -half_width,    # Lower right.
-            half_width,    # Upper right.
-            half_width,    # Upper left.
+            -half_width,  # Lower left.
+            -half_width,  # Lower right.
+            half_width,  # Upper right.
+            half_width,  # Upper left.
         ])
 
         return x, y
@@ -345,16 +382,16 @@ class TrapezoidLine(RinkFeature):
         half_thickness = self.thickness / 2
 
         x = np.array([
-            0,    # Inside bottom.
-            0,    # Inside top.
-            self.length,    # Outside top.
-            self.length,    # Outside bottom.
+            0,  # Inside bottom.
+            0,  # Inside top.
+            self.length,  # Outside top.
+            self.length,  # Outside bottom.
         ])
         y = np.array([
-            -half_thickness,    # Inside bottom.
-            half_thickness,    # Inside top.
-            self.width + half_thickness,    # Outside top.
-            self.width - half_thickness,    # Outside bottom.
+            -half_thickness,  # Inside bottom.
+            half_thickness,  # Inside top.
+            self.width + half_thickness,  # Outside top.
+            self.width - half_thickness,  # Outside bottom.
         ])
 
         return x, y
@@ -439,21 +476,21 @@ class RinkL(RinkFeature):
 
     def get_centered_xy(self):
         x = np.array(([
-            0,    # Corner of L - left side.
-            0,    # Top of L - left side.
-            self.thickness * np.sign(self.length),    # Top of L - right side.
-            self.thickness * np.sign(self.length),    # Corner of L - right side.
-            self.length,    # Right of L - top side.
-            self.length,    # Right of L - bottom side.
+            0,  # Corner of L - left side.
+            0,  # Top of L - left side.
+            self.thickness * np.sign(self.length),  # Top of L - right side.
+            self.thickness * np.sign(self.length),  # Corner of L - right side.
+            self.length,  # Right of L - top side.
+            self.length,  # Right of L - bottom side.
         ]))
 
         y = np.array(([
-            0,    # Corner of L - left side.
-            self.width,    # Top of L - left side.
-            self.width,    # Top of L - right side.
-            self.thickness * np.sign(self.width),    # Corner of L - right side.
-            self.thickness * np.sign(self.width),    # Right of L - top side.
-            0,    # Right of L - bottom side.
+            0,  # Corner of L - left side.
+            self.width,  # Top of L - left side.
+            self.width,  # Top of L - right side.
+            self.thickness * np.sign(self.width),  # Corner of L - right side.
+            self.thickness * np.sign(self.width),  # Right of L - top side.
+            0,  # Right of L - bottom side.
         ]))
 
         return x, y
@@ -633,7 +670,7 @@ class CircularImage(RinkCircle):
         self.rotation = rotation
         super().__init__(**polygon_kwargs)
 
-    def draw(self, ax=None, transform=None, bbox=None):
+    def draw(self, ax=None, transform=None, xlim=None, ylim=None):
         # Early exit if not visible.
         if not self.polygon_kwargs.get("visible", True):
             return None
@@ -741,29 +778,29 @@ class RoundedRectangle(RinkFeature):
             inner_arc_y, outer_arc_y = np.reshape(arc_y, (2, -1))
 
         x = np.concatenate((
-            inner_arc_x,    # Inside top right corner.
-            inner_arc_x[::-1],    # Inside bottom right corner.
-            -inner_arc_x,    # Inside bottom left corner.
-            -inner_arc_x[::-1],    # Inside top left corner.
-            inner_arc_x[:1],    # Start of inside top left corner.
-            outer_arc_x[-1:],    # End of inside top left corner.
-            -outer_arc_x[::-1],    # Outside top left corner.
-            -outer_arc_x,    # Outside bottom left corner.
-            outer_arc_x[::-1],    # Outside bottom right corner.
-            outer_arc_x,    # Outside top right corner.
+            inner_arc_x,  # Inside top right corner.
+            inner_arc_x[::-1],  # Inside bottom right corner.
+            -inner_arc_x,  # Inside bottom left corner.
+            -inner_arc_x[::-1],  # Inside top left corner.
+            inner_arc_x[:1],  # Start of inside top left corner.
+            outer_arc_x[-1:],  # End of inside top left corner.
+            -outer_arc_x[::-1],  # Outside top left corner.
+            -outer_arc_x,  # Outside bottom left corner.
+            outer_arc_x[::-1],  # Outside bottom right corner.
+            outer_arc_x,  # Outside top right corner.
         ))
 
         y = np.concatenate((
-            inner_arc_y,    # Inside corner.
-            -inner_arc_y[::-1],    # Inside bottom right corner.
-            -inner_arc_y,    # Inside bottom left corner.
-            inner_arc_y[::-1],    # Inside top left corner.
-            inner_arc_y[:1],    # Start of inside top left corner.
-            outer_arc_y[-1:],    # End of inside top left corner.
-            outer_arc_y[::-1],    # Outside top left corner.
-            -outer_arc_y,    # Outside bottom left corner.
-            -outer_arc_y[::-1],    # Outside bottom right corner.
-            outer_arc_y,    # Outside top right corner.
+            inner_arc_y,  # Inside corner.
+            -inner_arc_y[::-1],  # Inside bottom right corner.
+            -inner_arc_y,  # Inside bottom left corner.
+            inner_arc_y[::-1],  # Inside top left corner.
+            inner_arc_y[:1],  # Start of inside top left corner.
+            outer_arc_y[-1:],  # End of inside top left corner.
+            outer_arc_y[::-1],  # Outside top left corner.
+            -outer_arc_y,  # Outside bottom left corner.
+            -outer_arc_y[::-1],  # Outside bottom right corner.
+            outer_arc_y,  # Outside top right corner.
         ))
 
         return x, y

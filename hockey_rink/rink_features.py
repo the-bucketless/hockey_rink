@@ -1,5 +1,4 @@
 from hockey_rink.base_features import RoundedRectangle
-from matplotlib.path import Path
 
 
 class Boards(RoundedRectangle):
@@ -21,7 +20,7 @@ class Boards(RoundedRectangle):
         radius=28, resolution=500,
         is_reflected_x=False, is_reflected_y=False,
         visible=True, color="black", zorder=100,
-        clip_path=None,
+        clip_xy=None,
         **polygon_kwargs,
     ):
         """ Initialize attributes.
@@ -39,7 +38,7 @@ class Boards(RoundedRectangle):
             visible: bool (default=True)
             color: color (default="black")
             zorder: float (default=100)
-            clip_path: Path (optional)
+            clip_xy: (np.array, np.array) (optional)
             polygon_kwargs: dict (optional)
         """
 
@@ -54,11 +53,11 @@ class Boards(RoundedRectangle):
             radius, resolution,
             is_reflected_x, is_reflected_y,
             visible, color, zorder,
-            clip_path,
+            clip_xy,
             **polygon_kwargs,
         )
 
-    def get_path_for_clip(self):
+    def get_xy_for_clip(self):
         """ Determines the x and y-coordinates necessary for bounding the rink by the boards. Only the inner arc of
         the boards is needed for creating the bound.
 
@@ -73,4 +72,4 @@ class Boards(RoundedRectangle):
             x = x[:len(x) // 2]
             y = y[:len(y) // 2]
 
-        return Path(tuple(zip(x, y)))
+        return x, y

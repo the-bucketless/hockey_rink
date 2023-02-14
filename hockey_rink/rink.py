@@ -256,9 +256,6 @@ class Rink(BaseRinkPlot):
 
         super().__init__(rotation, x_shift, y_shift, alpha, boards)
 
-        self._feature_xlim = None
-        self._feature_ylim = None
-
         half_length = self._boards.length / 2
         half_width = self._boards.width / 2
 
