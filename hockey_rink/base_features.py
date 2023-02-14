@@ -37,7 +37,6 @@ from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
 import numpy as np
-import weakref
 
 
 class RinkFeature(ABC):
@@ -73,14 +72,11 @@ class RinkFeature(ABC):
         is_reflected_y: bool
             Whether or not the y-coordinates are to be reflected.
 
-        is_constrained: bool
-            Whether or not the feature is constrained to remain inside the boards.
-
         visible: bool
             Whether or not the feature will be drawn.
 
-        rink: weakref.ref(Rink)
-            Weak reference to the Rink object that the feature belongs to.
+        clip_path: Path
+            Bounds when drawing the object.
 
         polygon_kwargs: dict
             Any additional arguments to be passed to plt.Polygon.
@@ -92,9 +88,8 @@ class RinkFeature(ABC):
         length=0, width=0, thickness=0,
         radius=0, resolution=500,
         is_reflected_x=False, is_reflected_y=False,
-        is_constrained=True,
         visible=True, color=None, zorder=None,
-        rink=None,
+        clip_path=None,
         **polygon_kwargs,
     ):
         """ Initialize attributes.
@@ -109,11 +104,10 @@ class RinkFeature(ABC):
             resolution: int (default=500)
             is_reflected_x: bool (default=False)
             is_reflected_y: bool (default=False)
-            is_constrained: bool (default=True)
             visible: bool (default=True)
             color: color (optional)
             zorder: float (optional)
-            rink: Rink (optional)
+            clip_path: Path (optional)
             polygon_kwargs: dict (optional)
         """
 
@@ -126,9 +120,8 @@ class RinkFeature(ABC):
         self.resolution = resolution
         self.is_reflected_x = is_reflected_x
         self.is_reflected_y = is_reflected_y
-        self.is_constrained = is_constrained
         self.visible = visible
-        self.rink = rink if rink is None else weakref.ref(rink)
+        self.clip_path = clip_path
         self.polygon_kwargs = polygon_kwargs
 
         if color is not None:
@@ -258,7 +251,7 @@ class RinkFeature(ABC):
 
         return x, y
 
-    def draw(self, ax=None, transform=None):
+    def draw(self, ax=None, transform=None, bbox=None):
         """ Draws the feature.
 
         Parameters:
@@ -267,6 +260,9 @@ class RinkFeature(ABC):
 
             transform: matplotlib Transform (optional)
                 Transform to apply to the feature.
+
+            bbox: list (optional)
+                [[xmin, ymin], [xmax, ymax]]
 
         Returns:
             plt.Polygon
@@ -284,12 +280,9 @@ class RinkFeature(ABC):
         ax.add_patch(patch)
         patch.set_transform(transform)
 
-        if self.is_constrained:
-            try:
-                constraint = self.rink().get_boards_constraint(ax, transform)
-                patch.set_clip_path(constraint)
-            except (AttributeError, TypeError):
-                pass
+        if self.clip_path is not None:
+            self.clip_path.clip_to_bbox(bbox)
+            patch.set_clip_path(self.clip_path, transform)
 
         return patch
 
@@ -635,12 +628,12 @@ class CircularImage(RinkCircle):
             The amount to rotate the image.
     """
 
-    def __init__(self, path, rotation=0, is_constrained=False, **polygon_kwargs):
+    def __init__(self, path, rotation=0, **polygon_kwargs):
         self.path = path
         self.rotation = rotation
-        super().__init__(is_constrained=is_constrained, **polygon_kwargs)
+        super().__init__(**polygon_kwargs)
 
-    def draw(self, ax=None, transform=None):
+    def draw(self, ax=None, transform=None, bbox=None):
         # Early exit if not visible.
         if not self.polygon_kwargs.get("visible", True):
             return None

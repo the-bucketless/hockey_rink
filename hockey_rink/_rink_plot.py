@@ -115,10 +115,10 @@ class BaseRinkPlot(BaseRink):
         except TypeError:
             plot_features = [plot_features]
 
-        constraint = self.get_boards_constraint(ax, transform)
+        constraint = self._boards.get_path_for_clip()
 
         for plot_feature in plot_features:
-            plot_feature.set_clip_path(constraint)
+            plot_feature.set_clip_path(constraint, transform=transform)
 
     def _outside_rink_to_nan(self, x, y, values):
         """ Set values of coordinates outside the boundaries of the rink to nan. """

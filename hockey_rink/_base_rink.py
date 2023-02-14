@@ -96,6 +96,9 @@ class BaseRink(ABC):
 
         feature_class = params.pop("class")
 
+        if params.pop("is_constrained", True):
+            params["clip_path"] = self._boards.get_path_for_clip()
+
         xs = np.ravel(params.get("x", [0]))
         ys = np.ravel(params.get("y", [0]))
 
@@ -113,36 +116,10 @@ class BaseRink(ABC):
             feature_params["y"] = y * (-1 if y_reflection else 1)
             feature_params["is_reflected_x"] = x_reflection
             feature_params["is_reflected_y"] = y_reflection
-            feature_params["rink"] = self
 
             numeral = f"_{i}" if i else ""
 
             self._features[f"{feature_name}{numeral}"] = feature_class(**feature_params)
-
-    def get_boards_constraint(self, ax=None, transform=None):
-        """ Add the boards constraint to the rink to avoid features extending beyond boards.
-
-        Parameters:
-            ax: matplotlib Axes
-                Axes in which to add the constraint.
-
-            transform: matplotlib Transform; optional
-                Transform to apply to the constraint.
-
-        Returns:
-            matplotlib Polygon
-        """
-
-        if ax is None:
-            ax = plt.gca()
-
-        transform = transform or ax.transData
-
-        constraint = self._boards.get_constraint()
-        constraint.set_transform(transform)
-        ax.add_patch(constraint)
-
-        return constraint
 
     def _get_limits(self, display_range="full", xlim=None, ylim=None, thickness=0):
         """ Return the xlim and ylim values corresponding to the parameters.
@@ -328,12 +305,7 @@ class BaseRink(ABC):
         for feature in self._features.values():
             feature_patch = feature.draw(ax, transform)
 
-            try:
-                is_constrained = feature.is_constrained
-            except AttributeError:
-                is_constrained = False
-
-            if feature_patch is None or is_constrained:
+            if feature_patch is None or feature.clip_path is not None:
                 continue
 
             # need to track outer bounds of unconstrained features to properly set xlim and ylim
@@ -402,7 +374,7 @@ class BaseRink(ABC):
         if ax is None:
             ax = plt.gca()
 
-        x, y = self._boards.get_constraint_xy()
+        x, y = np.split(self._boards.get_path_for_clip().vertices, 2, axis=1)
 
         xlim, ylim = self._get_limits(display_range, xlim, ylim,
                                       self._boards.thickness)

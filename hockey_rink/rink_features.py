@@ -1,5 +1,5 @@
 from hockey_rink.base_features import RoundedRectangle
-import matplotlib.pyplot as plt
+from matplotlib.path import Path
 
 
 class Boards(RoundedRectangle):
@@ -20,9 +20,8 @@ class Boards(RoundedRectangle):
         length=200, width=85, thickness=1,
         radius=28, resolution=500,
         is_reflected_x=False, is_reflected_y=False,
-        is_constrained=False,
         visible=True, color="black", zorder=100,
-        rink=None,
+        clip_path=None,
         **polygon_kwargs,
     ):
         """ Initialize attributes.
@@ -37,11 +36,10 @@ class Boards(RoundedRectangle):
             resolution: int (default=500)
             is_reflected_x: bool (default=False)
             is_reflected_y: bool (default=False)
-            is_constrained: bool (default=False)
             visible: bool (default=True)
             color: color (default="black")
             zorder: float (default=100)
-            rink: Rink (optional)
+            clip_path: Path (optional)
             polygon_kwargs: dict (optional)
         """
 
@@ -55,13 +53,12 @@ class Boards(RoundedRectangle):
             length, width, thickness,
             radius, resolution,
             is_reflected_x, is_reflected_y,
-            is_constrained,
             visible, color, zorder,
-            rink,
+            clip_path,
             **polygon_kwargs,
         )
 
-    def get_constraint_xy(self):
+    def get_path_for_clip(self):
         """ Determines the x and y-coordinates necessary for bounding the rink by the boards. Only the inner arc of
         the boards is needed for creating the bound.
 
@@ -76,14 +73,4 @@ class Boards(RoundedRectangle):
             x = x[:len(x) // 2]
             y = y[:len(y) // 2]
 
-        return x, y
-
-    def get_constraint(self):
-        """ Creates a Polygon for use to constrain other objects within the inner edge of the boards.
-
-        Returns:
-            plt.Polygon
-        """
-
-        x, y = self.get_constraint_xy()
-        return plt.Polygon(tuple(zip(x, y)), visible=False)
+        return Path(tuple(zip(x, y)))
