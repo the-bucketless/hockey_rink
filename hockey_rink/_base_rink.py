@@ -300,7 +300,9 @@ class BaseRink(ABC):
         ax.set_aspect("equal")
         ax.axis("off")
 
-        xlim, ylim = self._get_limits(display_range, xlim, ylim)
+        if display_range != "full" and xlim is not None and ylim is not None:
+            xlim, ylim = self._get_limits(display_range, xlim, ylim)
+
         transform = self._get_transform(ax)
         self._boards.draw(ax, transform, xlim, ylim)
 
