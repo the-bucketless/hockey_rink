@@ -1,6 +1,6 @@
-""" Module containing all provided rink features as well as the abstract base class.
+""" Module containing base features to inherit from as well as the abstract base class.
 
-Currently available features are:
+Available features are:
     RinkRectangle
     RinkCircle
     TrapezoidLine
@@ -10,7 +10,6 @@ Currently available features are:
     Crease
     Crossbar
     Net
-    CircularImage
     LowerInwardArcRectangle
     RoundedRectangle
 """
@@ -27,7 +26,6 @@ __all__ = [
     "Crease",
     "Crossbar",
     "Net",
-    "CircularImage",
     "LowerInwardArcRectangle",
     "RoundedRectangle",
 ]
@@ -35,7 +33,6 @@ __all__ = [
 
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
-from matplotlib.transforms import Affine2D
 import numpy as np
 
 
@@ -236,11 +233,8 @@ class RinkFeature(ABC):
             **self.polygon_kwargs,
         )
 
-    def get_polygon_xy(self):
-        """ Determines the x and y-coordinates necessary for creating the plt.Polygon representing the feature. """
-
-        x, y = self.get_centered_xy()
-
+    def _convert_xy(self, x, y):
+        """ Shifts and reflects x and y-coordinates. """
         if self.is_reflected_x:
             x *= -1
         if self.is_reflected_y:
@@ -250,6 +244,35 @@ class RinkFeature(ABC):
         y = y + self.y
 
         return x, y
+
+    def get_polygon_xy(self):
+        """ Determines the x and y-coordinates necessary for creating the plt.Polygon representing the feature. """
+        x, y = self.get_centered_xy()
+        return self._convert_xy(x, y)
+
+    def _clip_patch(self, patch, transform, xlim, ylim):
+        """ Clips a Polygon to the smallest dimensions of clip_xy and the bbox created by xlim and ylim. """
+
+        # Use either the bounds provided or the feature's own bounds to clip it.
+        (xmin, xmax), (ymin, ymax) = self.get_limits()
+        xlim = (max(xlim[0], xmin), min(xlim[1], xmax)) if xlim else (xmin, xmax)
+        ylim = (max(ylim[0], ymin), min(ylim[1], ymax)) if ylim else (ymin, ymax)
+
+        # Clip based on class attribute.
+        if self.clip_xy:
+            clip_x, clip_y = self.clip_xy
+            clip_x = np.clip(clip_x, *xlim)
+            clip_y = np.clip(clip_y, *ylim)
+
+        # Clip based on bounding box of limits.
+        else:
+            clip_x = [xlim[0], xlim[0], xlim[1], xlim[1]]
+            clip_y = [*ylim, *ylim[::-1]]
+
+        clip_polygon = plt.Polygon(list(zip(clip_x, clip_y)), transform=transform)
+        patch.set_clip_path(clip_polygon)
+
+        return patch
 
     def draw(self, ax=None, transform=None, xlim=None, ylim=None):
         """ Draws the feature.
@@ -284,28 +307,8 @@ class RinkFeature(ABC):
         ax.add_patch(patch)
         patch.set_transform(transform)
 
-        # Early exit if no clipping.
-        if not (self.clip_xy or xlim or ylim):
-            return patch
-
-        # Use either the bounds provided or the feature's own bounds to clip it.
-        (xmin, xmax), (ymin, ymax) = self.get_limits()
-        xlim = (max(xlim[0], xmin), min(xlim[1], xmax)) if xlim else (xmin, xmax)
-        ylim = (max(ylim[0], ymin), min(ylim[1], ymax)) if ylim else (ymin, ymax)
-
-        # Clip based on class attribute.
-        if self.clip_xy:
-            clip_x, clip_y = self.clip_xy
-            clip_x = np.clip(clip_x, *xlim)
-            clip_y = np.clip(clip_y, *ylim)
-
-        # Clip based on bounding box of limits.
-        else:
-            clip_x = [xlim[0], xlim[0], xlim[1], xlim[1]]
-            clip_y = [*ylim, *ylim[::-1]]
-
-        clip_polygon = plt.Polygon(list(zip(clip_x, clip_y)), transform=transform)
-        patch.set_clip_path(clip_polygon)
+        if self.clip_xy or xlim or ylim:
+            patch = self._clip_patch(patch, transform, xlim, ylim)
 
         return patch
 
@@ -648,68 +651,6 @@ class Net(RinkFeature):
         ))
 
         return x, y
-
-
-class CircularImage(RinkCircle):
-    """ An image to be cropped inside a circle.
-
-    Inherits from RinkFeature.
-
-    If is_constrained is set to True, the image will no longer be circular.
-
-    Additional attributes:
-        path: string
-            The path from which to read the file for the image.
-
-        rotation: float
-            The amount to rotate the image.
-    """
-
-    def __init__(self, path, rotation=0, **polygon_kwargs):
-        self.path = path
-        self.rotation = rotation
-        super().__init__(**polygon_kwargs)
-
-    def draw(self, ax=None, transform=None, xlim=None, ylim=None):
-        # Early exit if not visible.
-        if not self.polygon_kwargs.get("visible", True):
-            return None
-
-        if ax is None:
-            ax = plt.gca()
-
-        transform = transform or ax.transData
-
-        try:
-            image = plt.imread(self.path)
-
-            x = -self.x if self.is_reflected_x else self.x
-            y = -self.y if self.is_reflected_y else self.y
-
-            extent = [
-                int(x - self.radius), int(x + self.radius),
-                int(y - self.radius), int(y + self.radius),
-            ]
-
-            im = ax.imshow(image, extent=extent, **self.polygon_kwargs)
-            im.set_transform(
-                Affine2D().rotate_deg_around(self.x, self.y, self.rotation)
-                + transform
-            )
-
-            patch = plt.Circle(
-                (x, y),
-                radius=self.radius,
-                transform=transform,
-            )
-            im.set_clip_path(patch)
-
-            return im
-
-        except Exception as e:
-            print(e)
-
-            return None
 
 
 class LowerInwardArcRectangle(RinkFeature):

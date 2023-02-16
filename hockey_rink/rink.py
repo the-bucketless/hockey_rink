@@ -3,6 +3,7 @@
 
 from hockey_rink._rink_plot import BaseRinkPlot
 from hockey_rink.base_features import *
+from hockey_rink.rink_features import *
 from itertools import product
 import numpy as np
 
@@ -613,9 +614,8 @@ class NWHLRink(NHLRink):
             "trapezoid": {"visible": False},
             "logo": {
                 "class": CircularImage,
-                "path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
+                "image_path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
                 "radius": center_radius - center_thickness,
-                "is_constrained": False,
                 "zorder": 11
             },
             "red_line": {
