@@ -136,15 +136,15 @@ class BaseRink(ABC):
             half_nzone_length = 0
 
         # Blue line is needed to calculate xlim when display_range is "nzone".
-        # It's possible blue lines have different sizes or that one or either don't exist.
-        o_blue_line_thickness = 0
-        d_blue_line_thickness = 0
-        for feature_name, feature in self._features.items():
-            if "blue_line" in feature_name:
-                if feature.x >= 0:
-                    o_blue_line_thickness = feature.length
-                else:
-                    d_blue_line_thickness = feature.length
+        nzone_xmin, nzone_xmax = np.inf, -np.inf
+        for feature in ("nzone", "blue_line", "blue_line_1"):
+            try:
+                feature_x, _ = self._features[feature].get_polygon_xy()
+                feature_clip_x, _ = self._features[feature].clip_xy
+                nzone_xmin = min(nzone_xmin, np.min(feature_x), np.max(feature_clip_x))
+                nzone_xmax = max(nzone_xmax, np.max(feature_x), np.min(feature_clip_x))
+            except (AttributeError, KeyError):
+                pass
 
         if xlim is None:
             equivalencies = {
@@ -160,8 +160,7 @@ class BaseRink(ABC):
                 "offense": (0, half_length),
                 "defense": (-half_length, 0),
                 "ozone": (half_nzone_length, half_length),
-                "nzone": (-half_nzone_length - d_blue_line_thickness,
-                          half_nzone_length + o_blue_line_thickness),
+                "nzone": (nzone_xmin, nzone_xmax),
                 "dzone": (-half_length, -half_nzone_length),
             }
 
@@ -343,6 +342,7 @@ class BaseRink(ABC):
                 "half" or "offense": The offensive half (largest x-coordinates) of the rink is displayed.
                 "defense": The defensive half (smallest x-coordinates) of the rink is displayed.
                 "ozone": The offensive zone (blue line to end boards) of the rink is displayed.
+                "nzone": The neutral zone (blue line to blue line) of the rink is displayed.
                 "dzone": The defensive zone (end boards to blue line) of the rink is displayed.
 
                 If no acceptable values for display_range, xlim, and ylim are provided, will display the full rink.
