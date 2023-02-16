@@ -145,6 +145,9 @@ class BaseRink(ABC):
                 nzone_xmax = max(nzone_xmax, np.max(feature_x), np.min(feature_clip_x))
             except (AttributeError, KeyError):
                 pass
+            except TypeError:
+                nzone_xmin = min(nzone_xmin, np.min(feature_x))
+                nzone_xmax = max(nzone_xmax, np.max(feature_x))
 
         if xlim is None:
             equivalencies = {
@@ -342,7 +345,6 @@ class BaseRink(ABC):
                 "half" or "offense": The offensive half (largest x-coordinates) of the rink is displayed.
                 "defense": The defensive half (smallest x-coordinates) of the rink is displayed.
                 "ozone": The offensive zone (blue line to end boards) of the rink is displayed.
-                "nzone": The neutral zone (blue line to blue line) of the rink is displayed.
                 "dzone": The defensive zone (end boards to blue line) of the rink is displayed.
 
                 If no acceptable values for display_range, xlim, and ylim are provided, will display the full rink.
