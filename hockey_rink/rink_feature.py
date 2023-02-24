@@ -234,6 +234,9 @@ class RinkFeature(ABC):
 
         polygon_x, polygon_y = self.get_polygon_xy()
 
+        if not polygon_x.size:
+            return None
+
         return plt.Polygon(
             tuple(zip(polygon_x, polygon_y)),
             **self.polygon_kwargs,
@@ -309,6 +312,9 @@ class RinkFeature(ABC):
         transform = transform or ax.transData
 
         patch = self.get_polygon()
+
+        if patch is None:
+            return None
 
         ax.add_patch(patch)
         patch.set_transform(transform)
