@@ -93,7 +93,7 @@ class BaseRink(ABC):
                 Universal alpha parameter to set transparency of all features that don't override it.
         """
 
-        feature_class = params.pop("class")
+        feature_class = params.pop("feature_class")
 
         if params.pop("is_constrained", True):
             params["clip_xy"] = self._boards.get_xy_for_clip()

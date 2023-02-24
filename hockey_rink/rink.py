@@ -54,7 +54,7 @@ class Rink(BaseRinkPlot):
         key for indicating the type of RinkFeature class being used.
             eg)
                 feature_name = {
-                    "class": feature_class,
+                    "feature_class": feature_class,
                     "x": feature_x,
                     "y": feature_y
                     "length": feature_length,
@@ -265,7 +265,7 @@ class Rink(BaseRinkPlot):
             "color": "white",
         }
         required_nzone = {
-            "class": RinkRectangle,
+            "feature_class": RinkRectangle,
             "x": 0,
             "y": 0,
             "width": self._boards.width,
@@ -283,7 +283,7 @@ class Rink(BaseRinkPlot):
             "color": "white",
         }
         required_ozone = {
-            "class": RinkRectangle,
+            "feature_class": RinkRectangle,
             "x": ozone_length / 2 + half_nzone_length,
             "y": 0,
             "length": ozone_length,
@@ -299,7 +299,7 @@ class Rink(BaseRinkPlot):
             "color": "white",
         }
         required_dzone = {
-            "class": RinkRectangle,
+            "feature_class": RinkRectangle,
             "x": -ozone_params["x"],
             "y": 0,
             "length": ozone_length,
@@ -312,7 +312,7 @@ class Rink(BaseRinkPlot):
 
         red_line = red_line or {}
         red_line_params = {
-            "class": RinkRectangle,
+            "feature_class": RinkRectangle,
             "length": 1,
             "width": self._boards.width,
             "color": "red",
@@ -323,7 +323,7 @@ class Rink(BaseRinkPlot):
 
         blue_line = blue_line or {}
         blue_line_params = {
-            "class": RinkRectangle,
+            "feature_class": RinkRectangle,
             "length": 1,
             "width": self._boards.width,
             "reflect_x": True,
@@ -338,7 +338,7 @@ class Rink(BaseRinkPlot):
 
         goal_line = goal_line or {}
         goal_line_params = {
-            "class": RinkRectangle,
+            "feature_class": RinkRectangle,
             "length": line_thickness,
             "width": self._boards.width,
             "reflect_x": True,
@@ -357,7 +357,7 @@ class Rink(BaseRinkPlot):
         # 11 and 14 refer to the center of the line
         trapezoid = trapezoid or {}
         trapezoid_params = {
-            "class": TrapezoidLine,
+            "feature_class": TrapezoidLine,
             "x": goal_line_params["x"] + goal_line_params["length"] / 2,
             "y": 11,
             "width": 3,
@@ -374,7 +374,7 @@ class Rink(BaseRinkPlot):
 
         ref_circle = ref_circle or {}
         ref_circle_params = {
-            "class": RinkCircle,
+            "feature_class": RinkCircle,
             "y": -half_width,
             "thickness": line_thickness,
             "radius": 10,
@@ -386,7 +386,7 @@ class Rink(BaseRinkPlot):
 
         center_dot = center_dot or {}
         center_dot_params = {
-            "class": RinkCircle,
+            "feature_class": RinkCircle,
             "radius": red_line_params["length"] / 2,
             "color": "blue",
             "zorder": 11,
@@ -396,7 +396,7 @@ class Rink(BaseRinkPlot):
 
         center_circle = center_circle or {}
         center_circle_params = {
-            "class": RinkCircle,
+            "feature_class": RinkCircle,
             "thickness": line_thickness,
             "radius": 15,
             "color": "blue",
@@ -407,7 +407,7 @@ class Rink(BaseRinkPlot):
 
         faceoff_circle = faceoff_circle or {}
         faceoff_circle_params = {
-            "class": FaceoffCircle,
+            "feature_class": FaceoffCircle,
             # 20' from front edge of goal line
             "x": goal_line_params["x"] - goal_line_params["length"] / 2 - 20,
             "y": 22,  # 44' between faceoff dots
@@ -429,7 +429,7 @@ class Rink(BaseRinkPlot):
 
         faceoff_dot = faceoff_dot or {}
         faceoff_dot_params = {
-            "class": FaceoffDot,
+            "feature_class": FaceoffDot,
             # ozone faceoff circles and 5' from the blue line
             "x": [*ozone_dot_x, half_nzone_length - 5],
             "y": dot_y,
@@ -448,7 +448,7 @@ class Rink(BaseRinkPlot):
 
         faceoff_lines = faceoff_lines or {}
         faceoff_lines_params = {
-            "class": RinkL,
+            "feature_class": RinkL,
             "x": ozone_dot_x,
             "y": dot_y,
             "length": 4,
@@ -485,7 +485,7 @@ class Rink(BaseRinkPlot):
 
         crease = crease or {}
         crease_params = {
-            "class": Crease,
+            "feature_class": Crease,
             "x": goal_line_params["x"] - goal_line_params["length"] / 2,
             "length": 4.5,  # 4'6" rectangular section
             "width": 8,  # 8' from outside edge to outside edge
@@ -510,7 +510,7 @@ class Rink(BaseRinkPlot):
         net = net or {}
 
         crossbar_params = {
-            "class": Crossbar,
+            "feature_class": Crossbar,
             "x": goal_line_params["x"] - goal_line_params["length"] / 2,
             # posts are 2 3/8" wide => half = 19/16"
             "radius": 19 / 16 / 12,
@@ -525,7 +525,7 @@ class Rink(BaseRinkPlot):
         self._initialize_feature("crossbar", crossbar_params, alpha)
 
         net_params = {
-            "class": Net,
+            "feature_class": Net,
             "x": crossbar_params["x"] + crossbar_params["radius"] * 2,
             "length": 40 / 12,  # 40" deep
             "width": crossbar_params["width"] + crossbar_params["radius"],
@@ -562,7 +562,7 @@ class NHLRink(Rink):
 
         nhl_updates = {
             "crease_notch": {
-                "class": RinkRectangle,
+                "feature_class": RinkRectangle,
                 "x": goal_line_x - 4 - crease_thickness / 2,
                 "y": ((crease.get("width", 8) - notch_width) / 2
                       - crease_thickness),
@@ -609,13 +609,13 @@ class NWHLRink(NHLRink):
             "center_dot": {"visible": False},
             "trapezoid": {"visible": False},
             "logo": {
-                "class": CircularImage,
+                "feature_class": CircularImage,
                 "image_path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
                 "radius": center_radius - center_thickness,
                 "zorder": 11
             },
             "red_line": {
-                "class": LowerInwardArcRectangle,
+                "feature_class": LowerInwardArcRectangle,
                 "radius": center_radius,
                 "reflect_y": True,
             },
@@ -657,7 +657,7 @@ class IIHFRink(Rink):
         notch_size = 5 / 12
 
         iihf_updates["crease_notch"] = {
-            "class": RinkL,
+            "feature_class": RinkL,
             "x": goal_line_x - 4,
             "y": 4,
             "length": notch_size,
