@@ -4,7 +4,7 @@ Available features are:
     RinkRectangle
     RinkCircle
     TrapezoidLine
-    InnerDot
+    FaceoffDot
     FaceoffCircle
     RinkL
     Crease
@@ -23,7 +23,7 @@ __all__ = [
     "RinkRectangle",
     "RinkCircle",
     "TrapezoidLine",
-    "InnerDot",
+    "FaceoffDot",
     "FaceoffCircle",
     "RinkL",
     "Crease",
@@ -406,27 +406,43 @@ class TrapezoidLine(RinkFeature):
         return x, y
 
 
-class InnerDot(RinkFeature):
-    """ The shape inside a faceoff dot.
+class FaceoffDot(RinkFeature):
+    """ A circle with a section carved out of the each side.
 
     Inherits from RinkFeature.
 
-    The length attribute is the distance from the center to the edge of the opening.
-    The thickness attribute is the size of the edge of the circle.
+    The length attribute is the distance from one side of the opening to the other.
+    The thickness is the size of the edge of the circle.
+
+    When thickness is 0, the circle won't be drawn, only the inner section.
     """
 
     def get_centered_xy(self):
-        radius = self.radius - self.thickness
         circle_x, circle_y = self.arc_coords(
             center=(0, 0),
-            width=radius,
+            width=self.radius,
+            thickness=self.thickness,
+            theta1=90,
+            theta2=-270,
             resolution=self.resolution,
         )
 
         half_length = self.length / 2
-        mask = (half_length >= circle_x) & (-half_length <= circle_x)
 
-        return circle_x[mask], circle_y[mask]
+        if self.thickness:
+            inner_circle_x, outer_circle_x = np.reshape(circle_x, (2, -1))
+            inner_circle_y, outer_circle_y = np.reshape(circle_y, (2, -1))
+
+            mask = (half_length >= outer_circle_x) & (-half_length <= outer_circle_x)
+
+            x = np.concatenate([outer_circle_x[mask], outer_circle_x, inner_circle_x])
+            y = np.concatenate([outer_circle_y[mask], outer_circle_y, inner_circle_y])
+        else:
+            mask = (half_length >= circle_x) & (-half_length <= circle_x)
+            x = circle_x[mask]
+            y = circle_y[mask]
+
+        return x, y
 
 
 class FaceoffCircle(RinkFeature):

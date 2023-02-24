@@ -429,7 +429,7 @@ class Rink(BaseRinkPlot):
 
         faceoff_dot = faceoff_dot or {}
         faceoff_dot_params = {
-            "class": RinkCircle,
+            "class": FaceoffDot,
             # ozone faceoff circles and 5' from the blue line
             "x": [*ozone_dot_x, half_nzone_length - 5],
             "y": dot_y,
@@ -444,10 +444,7 @@ class Rink(BaseRinkPlot):
 
         # split dot into two shapes, one for the outer circle and one for the inner shape
         faceoff_dot_params.update(faceoff_dot)
-        inner_dot_params = dict(faceoff_dot_params)
-        inner_dot_params["class"] = InnerDot
         self._initialize_feature("faceoff_dot", faceoff_dot_params, alpha)
-        self._initialize_feature("inner_dot", inner_dot_params, alpha)
 
         faceoff_lines = faceoff_lines or {}
         faceoff_lines_params = {
