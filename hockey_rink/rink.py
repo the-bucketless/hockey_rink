@@ -515,6 +515,7 @@ class Rink(BaseRinkPlot):
             # posts are 2 3/8" wide => half = 19/16"
             "radius": 19 / 16 / 12,
             "reflect_x": True,
+            "resolution": 10,
             "color": "red",
             "zorder": 6,
             "visible": net.get("visible", True),
