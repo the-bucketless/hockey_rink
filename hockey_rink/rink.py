@@ -2,8 +2,7 @@
 
 
 from hockey_rink._rink_plot import BaseRinkPlot
-from hockey_rink.base_features import *
-from hockey_rink.rink_features import *
+from hockey_rink.rink_feature import *
 from itertools import product
 import numpy as np
 

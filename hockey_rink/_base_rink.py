@@ -5,7 +5,7 @@ Not intended for direct use, only as a parent class.
 
 
 from abc import ABC
-from hockey_rink.rink_features import Boards
+from hockey_rink.rink_feature import Boards
 from itertools import product
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
