@@ -244,13 +244,13 @@ class RinkFeature(ABC):
 
     def _convert_xy(self, x, y):
         """ Shifts and reflects x and y-coordinates. """
+        x = x + self.x
+        y = y + self.y
+
         if self.is_reflected_x:
             x *= -1
         if self.is_reflected_y:
             y *= -1
-
-        x = x + self.x
-        y = y + self.y
 
         return x, y
 

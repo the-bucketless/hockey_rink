@@ -111,8 +111,8 @@ class BaseRink(ABC):
         ):
             feature_params = dict(params)
 
-            feature_params["x"] = x * (-1 if x_reflection else 1)
-            feature_params["y"] = y * (-1 if y_reflection else 1)
+            feature_params["x"] = x
+            feature_params["y"] = y
             feature_params["is_reflected_x"] = x_reflection
             feature_params["is_reflected_y"] = y_reflection
 
