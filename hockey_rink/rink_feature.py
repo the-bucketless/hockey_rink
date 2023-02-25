@@ -39,6 +39,7 @@ __all__ = [
 
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
+from matplotlib.transforms import Affine2D
 import numpy as np
 
 
@@ -869,7 +870,7 @@ class RinkImage(RinkRectangle):
         is_reflected_x=False, is_reflected_y=False,
         visible=True, color=None, zorder=None,
         clip_xy=None,
-        image=None, image_path=None,
+        image=None, image_path=None, rotation=0,
         **polygon_kwargs,
     ):
         """ Initialize attributes.
@@ -895,6 +896,10 @@ class RinkImage(RinkRectangle):
             clip_xy: (np.array, np.array) (optional)
             image: np.array (optional)
             image_path: string (optional)
+
+            rotation: float (default=0)
+                Degree to rotate the image around its center.
+
             polygon_kwargs: dict (optional)
 
         Raises:
@@ -905,6 +910,7 @@ class RinkImage(RinkRectangle):
             raise Exception("One of image and image_path must be specified when creating RinkImage.")
 
         self.image = plt.imread(image_path) if image is None else image
+        self.rotation = rotation
 
         image_height, image_width, *_ = self.image.shape
         if length is None:
@@ -932,9 +938,14 @@ class RinkImage(RinkRectangle):
         # Create copy to avoid mutating with pops.
         image_kwargs = dict(self.polygon_kwargs)
 
-        transform = transform or ax.transData
+        center_x, center_y = self._convert_xy(0, 0)
+        image_rotation = Affine2D().rotate_deg_around(center_x, center_y, self.rotation)
+
         image_transform = image_kwargs.pop("transform", None)
-        image_transform = transform if image_transform is None else image_transform + transform
+        image_transform = image_rotation if image_transform is None else image_transform + image_rotation
+
+        transform = transform or ax.transData
+        image_transform += transform
 
         # If extent not provided, use length and width of the image to calculate it.
         if "extent" in image_kwargs:
@@ -970,7 +981,7 @@ class CircularImage(RinkImage):
         is_reflected_x=False, is_reflected_y=False,
         visible=True, color=None, zorder=None,
         clip_xy=None,
-        image=None, image_path=None,
+        image=None, image_path=None, rotation=0,
         **polygon_kwargs,
     ):
         """ Initialize attributes.
@@ -999,6 +1010,10 @@ class CircularImage(RinkImage):
             clip_xy: Ignored
             image: np.array (optional)
             image_path: string (optional)
+
+            rotation: float (default=0)
+                Degree to rotate the image around its center.
+
             polygon_kwargs: dict (optional)
 
         Raises:
@@ -1017,7 +1032,7 @@ class CircularImage(RinkImage):
             is_reflected_x, is_reflected_y,
             visible, color, zorder,
             clip_xy,
-            image, image_path,
+            image, image_path, rotation,
             **polygon_kwargs,
         )
 
