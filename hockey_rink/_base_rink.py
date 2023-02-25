@@ -93,6 +93,9 @@ class BaseRink(ABC):
                 Universal alpha parameter to set transparency of all features that don't override it.
         """
 
+        # Copy to avoid mutation.
+        params = dict(params)
+
         feature_class = params.pop("feature_class")
 
         if params.pop("is_constrained", True):

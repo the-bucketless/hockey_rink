@@ -7,7 +7,7 @@ from itertools import product
 import numpy as np
 
 
-__all__ = ["Rink", "NHLRink", "NWHLRink", "IIHFRink", "BDCRink"]
+__all__ = ["Rink", "NHLRink", "NWHLRink", "IIHFRink"]
 
 
 class Rink(BaseRinkPlot):
@@ -39,22 +39,46 @@ class Rink(BaseRinkPlot):
             align with the drawing, not to alter the drawing to align with the coordinates.
     """
 
-    def __init__(self, rotation=0, x_shift=0, y_shift=0, alpha=None,
-                 line_thickness=1 / 6, line_color="red", line_zorder=5,
-                 x_dot_to_lines=2, y_dot_to_lines=9 / 12,
-                 boards=None, nzone=None, ozone=None, dzone=None,
-                 red_line=None, blue_line=None, goal_line=None,
-                 trapezoid=None, ref_circle=None, center_dot=None,
-                 center_circle=None, faceoff_circle=None, faceoff_dot=None,
-                 faceoff_lines=None, crease=None, crease_outline=None,
-                 crossbar=None, net=None, **added_features):
+    def __init__(
+        self,
+        rotation=0, x_shift=0, y_shift=0, alpha=None,
+        line_thickness=1 / 6, line_color="red", line_zorder=5,
+        x_dot_to_lines=2, y_dot_to_lines=9 / 12, goal_line_to_dot=20,
+        boards=None,
+        **features,
+    ):
         """ Initialize and create the features of the rink.
 
-        Most parameters expect a dict with key/value pairs corresponding to RinkFeature attributes as well as one
-        key for indicating the type of RinkFeature class being used.
+        The features parameters allows for both updating default features and creating new features.
+        The defaults features are:
+            nzone
+            ozone
+            dzone
+            red_line
+            blue_line
+            goal_line
+            trapezoid
+            ref_circle
+            center_circle
+            center_dot
+            faceoff_circle
+            faceoff_dot
+            faceoff_lines
+            crease
+            crease_outline
+            crossbar
+            net
+
+        Updates to existing features and new features both expect a dict with key/value pairs corresponding to
+        RinkFeature attributes. Additionally, features expect a key for the feature_class with a value indicating the
+        type of RinkFeature class being used. They will also accept an is_constrained key with a boolean value. If this
+        is not provided or is set to True, the feature will use the rink's boards for the clip_xy attribute of the
+        feature.
+
             eg)
                 feature_name = {
                     "feature_class": feature_class,
+                    "is_constrained": feature_is_constrained,
                     "x": feature_x,
                     "y": feature_y
                     "length": feature_length,
@@ -64,13 +88,13 @@ class Rink(BaseRinkPlot):
                     "resolution": feature_resolution,
                     "reflect_x": feature_reflect_x,
                     "reflect_y": feature_reflect_y
-                    "is_constrained": feature_is_constrained,
                     "visible": feature_visible,
+                    "rotation": feature_rotation,
                     ...
                 }
         Explanations for the attributes can be found in the RinkFeature documentation.
 
-        The exceptions are:
+        Some exceptions are:
             Multiple x and y coordinates can be passed as an array_like value.  If multiple values are provided,
             one feature will be created for each combination of coordinates.
 
@@ -79,24 +103,25 @@ class Rink(BaseRinkPlot):
             accordingly.  The exact coordinate is determined by the values passed to x_dot_to_lines and y_dot_to_lines.
 
         Other attributes can be provided so long as they can be used by matplotlib's Polygon (such as color or zorder)
-        or are appropriate for that particular feature (eg CircularImage requires a path attribute).
+        or are appropriate for that particular feature (eg RinkImage accepts an image_path attribute).
 
         All parameters that expect a dict only require any desired changes to be included in the key/value pairs.
             ie) To update the length of the boards (and, thereby, the rink), all that needs to be passed in is:
                 boards={"length": new_length}
         Including other attributes in the dict is unnecessary unless they too require updates.
 
-        Any parameters not included default to NHL dimensions, though they may be affected by changes to other
-        parameters.
+        Any parameters not included will be supplied with defaults based on this rink type, though they may be affected
+        by changes to other parameters.
 
         To remove a feature from the rink, set visible to False.
             eg) trapezoid={"visible": False}
 
-        New features can be included by passing in a dict with a name not included in the parameter list.
-            eg) new_feature: {"class": feature_class, ...}
+        New features can be included by passing in a dict with a name not included in the default list.
+            eg) new_feature={"class": feature_class, ...}
 
         The default zorders are:
-            1: nzone, ozone, dzone, crease
+            1: nzone, ozone, dzone
+            2: crease
             5: goal_line, trapezoid, ref_circle, center_circle, faceoff_circle,
                 faceoff_dot, faceoff_lines, crease_outline, net
             6: crossbar
@@ -151,458 +176,346 @@ class Rink(BaseRinkPlot):
             x_dot_to_lines: float; default: 2
                 Length-wise distance between a faceoff dot and the L shapes in the faceoff circle.
 
-            y_dot_to_lines = float; default: 9/12
+            y_dot_to_lines: float; default: 9/12
                 Width-wise distance between a faceoff dot and the L shapes in the faceoff circle.
+
+            goal_line_to_dot: float (default=20 except for IIHFRink which is 22)
+                Distance between the goal line and the faceoff dots.
 
             boards: dict; optional
                 Attributes to update for the boards.
 
                 Also affects the constraint that prevents features from extending outside the boards.
 
-                The following won't be updated even if values are provided:
-                    class
-                    x
-                    y
-                    reflect_x
-                    reflect_y
-                    is_constrained
-
-            nzone: dict; optional
-                Attributes to update for the neutral zone.
-
-                The following won't be updated even if values are provided:
-                    class
-                    x
-                    y
-                    width
-                    reflect_x
-                    reflect_y
-
-            ozone: dict; optional
-                Attributes to update for the offensive zone (largest x values).
-
-                The following won't be updated even if values are provided:
-                    class
-                    x
-                    y
-                    length
-                    reflect_x
-                    reflect_y
-
-            dzone: dict; optional
-                Attributes to update for the defensive zone (smallest x values).
-
-                The following won't be updated even if values are provided:
-                    class
-                    x
-                    y
-                    length
-                    reflect_x
-                    reflect_y
-
-            red_line: dict; optional
-                Attributes to update for the red (center) line.
-
-            blue_line: dict; optional
-                Attributes to update for the blue line(s).
-
-            goal_line: dict; optional
-                Attributes to update for the goal line(s).
-
-            trapezoid: dict; optional
-                Attributes to update for the trapezoid(s) for a goalie's restricted area.
-
-            ref_circle: dict; optional
-                Attributes to update for the ref's half circle.
-
-            center_dot: dict; optional
-                Attributes to update for the center faceoff dot.
-
-            center_circle: dict; optional
-                Attributes to update for the center faceoff circle.
-
-            faceoff_circle: dict; optional
-                Attributes to update for the faceoff circle(s) not including the one at
-                center ice unless otherwise updated.
-
-                All circles will include hashmarks by default.  To remove hashmarks, change
-                the class to RinkCircle (ie faceoff_circle={"class": RinkCircle}).
-
-            faceoff_dot: dict; optional
-                Attributes to update for the faceoff dot(s) not including the one at
-                center ice unless otherwise updated.
-
-            faceoff_lines: dict; optional
-                Attributes to update for the L shapes in the faceoff circles.
-
-            crease: dict; optional
-                Attributes to update for the crease(s).
-
-            crease_outline: dict; optional
-                Attributes to update for the outline(s) of the crease.
-
-            crossbar: dict; optional
-                Attributes to update for the crossbar(s) of the net.
-
-                The visibility defaults to match the net's visibility.
-
-            net: dict; optional
-                Attributes to update for the netting of the net.
-
-            added_features: dict; optional
-                Any additional features to be added to the rink along with a dict of their
-                attributes to be used.
+            features: dict (optional)
+                Updates to default features and new features to be added, as described above.
         """
 
         super().__init__(rotation, x_shift, y_shift, alpha, boards)
 
+        features = self._compute_feature_params(
+            features,
+            line_thickness, line_color, line_zorder,
+            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+        )
+
+        for feature_name, feature_params in features.items():
+            self._initialize_feature(feature_name, feature_params, alpha)
+
+    def _compute_feature_params(
+        self,
+        features,
+        line_thickness, line_color, line_zorder,
+        x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+    ):
+        """ Update any missing parameters for features using defaults for this rink. """
+
+        features = features or {}
+
         half_length = self._boards.length / 2
         half_width = self._boards.width / 2
 
-        nzone = nzone or {}
-        nzone_params = {
-            "length": 50,
-            "color": "white",
+        feature_defaults = {
+            "nzone": {
+                "feature_class": RinkRectangle,
+                "length": 50,
+                "width": self._boards.width,
+                "color": "white",
+            },
+            "ozone": {
+                "feature_class": RinkRectangle,
+                "width": self._boards.width,
+                "color": "white",
+            },
+            "dzone": {
+                "feature_class": RinkRectangle,
+                "width": self._boards.width,
+                "color": "white",
+            },
+            "red_line": {
+                "feature_class": RinkRectangle,
+                "length": 1,
+                "width": self._boards.width,
+                "color": "red",
+                "zorder": 10,
+            },
+            "blue_line": {
+                "feature_class": RinkRectangle,
+                "length": 1,
+                "width": self._boards.width,
+                "reflect_x": True,
+                "color": "blue",
+                "zorder": 10,
+            },
+            "goal_line": {
+                "feature_class": RinkRectangle,
+                "length": line_thickness,
+                "width": self._boards.width,
+                "reflect_x": True,
+                "color": line_color,
+                "zorder": line_zorder,
+            },
+            "trapezoid": {
+                "feature_class": TrapezoidLine,
+                "y": 11,
+                "width": 3,  # 11' from center to 14' from center.
+                "thickness": line_thickness,
+                "reflect_x": True,
+                "reflect_y": True,
+                "color": line_color,
+                "zorder": line_zorder,
+            },
+            "ref_circle": {
+                "feature_class": RinkCircle,
+                "y": -half_width,
+                "thickness": line_thickness,
+                "radius": 10,
+                "color": line_color,
+                "zorder": line_zorder,
+            },
+            "center_dot": {
+                "feature_class": RinkCircle,
+                "color": "blue",
+                "zorder": 11,
+            },
+            "center_circle": {
+                "feature_class": RinkCircle,
+                "thickness": line_thickness,
+                "radius": 15,
+                "color": "blue",
+                "zorder": line_zorder,
+            },
+            "faceoff_circle": {
+                "feature_class": FaceoffCircle,
+                "y": 22,  # 44' between faceoff dots.
+                "length": 67 / 12,  # 5'7" between inside edges of hashmarks.
+                "width": 2,  # Hashmarks are 2' long.
+                "thickness": line_thickness,
+                "resolution": 5000,  # Increase resolution to keep lines straight.
+                "reflect_x": True,
+                "reflect_y": True,
+                "color": line_color,
+                "zorder": line_zorder,
+            },
+            "faceoff_dot": {
+                "feature_class": FaceoffDot,
+                "length": 16 / 12,  # Edge of circle to edge of inner shape.
+                "thickness": 1 / 12,
+                "radius": 1,
+                "reflect_x": True,
+                "reflect_y": True,
+                "color": "red",
+                "zorder": 5,
+            },
+            "faceoff_lines": {
+                "feature_class": RinkL,
+                "length": 4,
+                "width": 3,
+                "thickness": line_thickness,
+                "reflect_x": True,
+                "reflect_y": True,
+                "color": line_color,
+                "zorder": line_zorder,
+            },
+            "crease": {
+                "feature_class": Crease,
+                "length": 4.5,  # 4'6" rectangular section.
+                "width": 8,  # 8' from outside edge to outside edge.
+                "radius": 1.5,  # 6' total length.
+                "reflect_x": True,
+                "color": "lightblue",
+                "zorder": 2,
+            },
+            "crease_outline": {
+                "thickness": line_thickness,
+                "color": line_color,
+                "zorder": line_zorder,
+            },
+            "crossbar": {
+                "feature_class": Crossbar,
+                "radius": 19 / 16 / 12,  # Posts are 2+3/8" wide, half = 19/16"
+                "reflect_x": True,
+                "resolution": 10,
+                "color": "red",
+                "zorder": 6,
+            },
+            "net": {
+                "feature_class": Net,
+                "length": 40 / 12,  # 40' deep.
+                "thickness": 88 / 12,  # Width from outer edge to outer edge.
+                "radius": 20 / 12,
+                "reflect_x": True,
+                "color": "grey",
+                "zorder": 5,
+            }
         }
-        required_nzone = {
-            "feature_class": RinkRectangle,
-            "x": 0,
-            "y": 0,
-            "width": self._boards.width,
-            "reflect_x": False,
-            "reflect_y": False,
-        }
-        nzone_params = {**nzone_params, **nzone, **required_nzone}
-        self._initialize_feature("nzone", nzone_params, alpha)
 
-        half_nzone_length = nzone_params["length"] / 2
+        # Update any missing values with defaults.
+        features = self._merge_params(features, feature_defaults)
 
-        ozone = ozone or {}
+        # Update for defaults that depend on other features.
+        half_nzone_length = features["nzone"]["length"] / 2
         ozone_length = half_length - half_nzone_length
-        ozone_params = {
-            "color": "white",
-        }
-        required_ozone = {
-            "feature_class": RinkRectangle,
-            "x": ozone_length / 2 + half_nzone_length,
-            "y": 0,
-            "length": ozone_length,
-            "width": self._boards.width,
-            "reflect_x": False,
-            "reflect_y": False,
-        }
-        ozone_params = {**ozone_params, **ozone, **required_ozone}
-        self._initialize_feature("ozone", ozone_params, alpha)
 
-        dzone = dzone or {}
-        dzone_params = {
-            "color": "white",
-        }
-        required_dzone = {
-            "feature_class": RinkRectangle,
-            "x": -ozone_params["x"],
-            "y": 0,
-            "length": ozone_length,
-            "width": self._boards.width,
-            "reflect_x": False,
-            "reflect_y": False,
-        }
-        dzone_params = {**dzone_params, **dzone, **required_dzone}
-        self._initialize_feature("dzone", dzone_params, alpha)
+        features["ozone"]["x"] = features["ozone"].get("x", ozone_length / 2 + half_nzone_length)
+        features["ozone"]["length"] = features["ozone"].get("length", ozone_length)
 
-        red_line = red_line or {}
-        red_line_params = {
-            "feature_class": RinkRectangle,
-            "length": 1,
-            "width": self._boards.width,
-            "color": "red",
-            "zorder": 10,
-        }
-        red_line_params.update(red_line)
-        self._initialize_feature("red_line", red_line_params, alpha)
+        features["dzone"]["x"] = features["dzone"].get("x", -features["ozone"]["x"])
+        features["dzone"]["length"] = features["dzone"].get("length", ozone_length)
 
-        blue_line = blue_line or {}
-        blue_line_params = {
-            "feature_class": RinkRectangle,
-            "length": 1,
-            "width": self._boards.width,
-            "reflect_x": True,
-            "color": "blue",
-            "zorder": 10,
-        }
-        blue_line_params.update(blue_line)
-        blue_line_params["x"] = blue_line_params.get(
-            "x", half_nzone_length + blue_line_params["length"] / 2)
+        features["blue_line"]["x"] = features["blue_line"].get(
+            "x",
+            half_nzone_length + features["blue_line"]["length"] / 2
+        )
 
-        self._initialize_feature("blue_line", blue_line_params, alpha)
+        # Back edge of goal line is 11' from the boards.
+        features["goal_line"]["x"] = features["goal_line"].get(
+            "x",
+            half_length - 11 - features["goal_line"]["length"] / 2
+        )
 
-        goal_line = goal_line or {}
-        goal_line_params = {
-            "feature_class": RinkRectangle,
-            "length": line_thickness,
-            "width": self._boards.width,
-            "reflect_x": True,
-            "color": line_color,
-            "zorder": line_zorder,
-        }
-        goal_line_params.update(goal_line)
+        features["trapezoid"]["x"] = features["trapezoid"].get(
+            "x",
+            features["goal_line"]["x"] + features["goal_line"]["length"] / 2
+        )
+        features["trapezoid"]["length"] = features["trapezoid"].get("length", half_length - features["trapezoid"]["x"])
 
-        # back edge of goal line is 11' from the boards
-        goal_line_params["x"] = goal_line_params.get(
-            "x", half_length - 11 - goal_line_params["length"] / 2)
+        features["center_dot"]["radius"] = features["center_dot"].get("radius", features["red_line"]["length"] / 2)
 
-        self._initialize_feature("goal_line", goal_line_params, alpha)
+        features["faceoff_circle"]["x"] = features["faceoff_circle"].get(
+            "x",
+            features["goal_line"]["x"] - features["goal_line"]["length"] / 2 - goal_line_to_dot
+        )
+        features["faceoff_circle"]["radius"] = features["faceoff_circle"].get(
+            "radius",
+            features["center_circle"]["radius"]
+        )
 
-        # trapezoid lines go from 11 ft from center to 14 ft from center
-        # 11 and 14 refer to the center of the line
-        trapezoid = trapezoid or {}
-        trapezoid_params = {
-            "feature_class": TrapezoidLine,
-            "x": goal_line_params["x"] + goal_line_params["length"] / 2,
-            "y": 11,
-            "width": 3,
-            "thickness": line_thickness,
-            "reflect_x": True,
-            "reflect_y": True,
-            "color": line_color,
-            "zorder": line_zorder,
-        }
-        trapezoid_params.update(trapezoid)
-        trapezoid_params["length"] = trapezoid_params.get(
-            "length", half_length - trapezoid_params["x"])
-        self._initialize_feature("trapezoid", trapezoid_params, alpha)
+        # Ozone dots in center of circle, nzone dots 5' from the blue line.
+        ozone_dot_x = np.ravel(features["faceoff_circle"]["x"])
+        dot_y = np.ravel(features["faceoff_circle"]["y"])
+        features["faceoff_dot"]["x"] = features["faceoff_dot"].get("x", [*ozone_dot_x, half_nzone_length - 5])
+        features["faceoff_dot"]["y"] = features["faceoff_dot"].get("y", dot_y)
 
-        ref_circle = ref_circle or {}
-        ref_circle_params = {
-            "feature_class": RinkCircle,
-            "y": -half_width,
-            "thickness": line_thickness,
-            "radius": 10,
-            "color": line_color,
-            "zorder": line_zorder,
-        }
-        ref_circle_params.update(ref_circle)
-        self._initialize_feature("ref_circle", ref_circle_params, alpha)
+        features["faceoff_lines"]["x"] = features["faceoff_lines"].get("x", ozone_dot_x)
+        features["faceoff_lines"]["y"] = features["faceoff_lines"].get("y", dot_y)
+        faceoff_lines = features.pop("faceoff_lines")
 
-        center_dot = center_dot or {}
-        center_dot_params = {
-            "feature_class": RinkCircle,
-            "radius": red_line_params["length"] / 2,
-            "color": "blue",
-            "zorder": 11,
-        }
-        center_dot_params.update(center_dot)
-        self._initialize_feature("center_dot", center_dot_params, alpha)
-
-        center_circle = center_circle or {}
-        center_circle_params = {
-            "feature_class": RinkCircle,
-            "thickness": line_thickness,
-            "radius": 15,
-            "color": "blue",
-            "zorder": line_zorder,
-        }
-        center_circle_params.update(center_circle)
-        self._initialize_feature("center_circle", center_circle_params, alpha)
-
-        faceoff_circle = faceoff_circle or {}
-        faceoff_circle_params = {
-            "feature_class": FaceoffCircle,
-            # 20' from front edge of goal line
-            "x": goal_line_params["x"] - goal_line_params["length"] / 2 - 20,
-            "y": 22,  # 44' between faceoff dots
-            "length": 67 / 12,  # 5'7" between inside edges of hashmarks
-            "width": 2,  # hashmarks are 2' long
-            "thickness": line_thickness,
-            "radius": center_circle_params["radius"],
-            "resolution": 5000,  # increase resolution to keep lines straight
-            "reflect_x": True,
-            "reflect_y": True,
-            "color": line_color,
-            "zorder": line_zorder,
-        }
-        faceoff_circle_params.update(faceoff_circle)
-        self._initialize_feature("faceoff_circle", faceoff_circle_params, alpha)
-
-        ozone_dot_x = np.ravel(faceoff_circle_params["x"])
-        dot_y = np.ravel(faceoff_circle_params["y"])
-
-        faceoff_dot = faceoff_dot or {}
-        faceoff_dot_params = {
-            "feature_class": FaceoffDot,
-            # ozone faceoff circles and 5' from the blue line
-            "x": [*ozone_dot_x, half_nzone_length - 5],
-            "y": dot_y,
-            "length": 16 / 12,  # edge to edge of inner shape
-            "thickness": 1 / 12,
-            "radius": 1,
-            "reflect_x": True,
-            "reflect_y": True,
-            "color": "red",
-            "zorder": 5,
-        }
-
-        # split dot into two shapes, one for the outer circle and one for the inner shape
-        faceoff_dot_params.update(faceoff_dot)
-        self._initialize_feature("faceoff_dot", faceoff_dot_params, alpha)
-
-        faceoff_lines = faceoff_lines or {}
-        faceoff_lines_params = {
-            "feature_class": RinkL,
-            "x": ozone_dot_x,
-            "y": dot_y,
-            "length": 4,
-            "width": 3,
-            "thickness": line_thickness,
-            "reflect_x": True,
-            "reflect_y": True,
-            "color": line_color,
-            "zorder": line_zorder,
-        }
-        faceoff_lines_params.update(faceoff_lines)
-
-        try:
-            iter(faceoff_lines_params["x"])
-        except TypeError:
-            faceoff_lines_params["x"] = [faceoff_lines_params["x"]]
-
-        try:
-            iter(faceoff_lines_params["y"])
-        except TypeError:
-            faceoff_lines_params["y"] = [faceoff_lines_params["y"]]
-
-        # one L for each side of the dot
+        # One L for each side of the dot.
         for i, (x_side, y_side) in enumerate(product((1, -1), (1, -1))):
-            current_line = dict(faceoff_lines_params)
-            current_line["x"] = [x + x_dot_to_lines * x_side for x in current_line["x"]]
-            current_line["y"] = [y + y_dot_to_lines * y_side for y in current_line["y"]]
+            x_map = {1: "right", -1: "left"}
+            y_map = {1: "top", -1: "bottom"}
 
-            # change shape by using negative length and/or width
-            current_line["length"] = current_line["length"] * x_side
-            current_line["width"] = current_line["width"] * y_side
+            line_params = dict(faceoff_lines)
+            line_params["x"] = [x + x_dot_to_lines * x_side for x in line_params["x"]]
+            line_params["y"] = [y + y_dot_to_lines * y_side for y in line_params["y"]]
 
-            self._initialize_feature(f"faceoff_line{i}", current_line, alpha)
+            # Change shape by using negative length and/or width.
+            line_params["length"] *= x_side
+            line_params["width"] *= y_side
 
-        crease = crease or {}
-        crease_params = {
-            "feature_class": Crease,
-            "x": goal_line_params["x"] - goal_line_params["length"] / 2,
-            "length": 4.5,  # 4'6" rectangular section
-            "width": 8,  # 8' from outside edge to outside edge
-            "radius": 1.5,  # total length 6'
-            "reflect_x": True,
-            "reflect_y": False,
-            "color": "lightblue",
+            features[f"{y_map[y_side]}_{x_map[x_side]}_faceoff_line"] = line_params
+
+        back_goal_line_x = features["goal_line"]["x"] - features["goal_line"]["length"] / 2
+        features["crease"]["x"] = features["crease"].get("x", back_goal_line_x)
+
+        # Update crease outline based on crease.
+        for k, v in features["crease"].items():
+            if k not in features["crease_outline"]:
+                features["crease_outline"][k] = v
+
+        features["crossbar"]["x"] = features["crossbar"].get(
+            "x",
+            back_goal_line_x
+        )
+        features["crossbar"]["width"] = features["crossbar"].get("width", 6 + features["crossbar"]["radius"])
+        features["crossbar"]["visible"] = features["crossbar"].get("visible", features["net"].get("visible", True))
+
+        features["net"]["x"] = features["net"].get("x", features["crossbar"]["x"] + features["crossbar"]["radius"] * 2)
+        features["net"]["width"] = features["net"].get(
+            "width",
+            features["crossbar"]["width"] + features["crossbar"]["radius"]
+        )
+
+        return features
+
+    @staticmethod
+    def _merge_params(features, feature_defaults):
+        """ Update missing values in features with defaults. """
+        feature_names = set(features.keys()).union(feature_defaults.keys())
+        return {
+            feature_name: {
+                **feature_defaults.get(feature_name, {}),
+                **features.get(feature_name, {})
+            }
+            for feature_name in feature_names
         }
-        crease_params.update(crease)
-
-        crease_outline = crease_outline or {}
-        crease_outline_params = dict(crease_params)
-        crease_outline_params["thickness"] = line_thickness
-        crease_outline_params["color"] = line_color
-        crease_outline_params["zorder"] = line_zorder
-        crease_outline_params.update(crease_outline)
-
-        self._initialize_feature("crease", crease_params, alpha)
-        self._initialize_feature("crease_outline", crease_outline_params, alpha)
-
-        crossbar = crossbar or {}
-        net = net or {}
-
-        crossbar_params = {
-            "feature_class": Crossbar,
-            "x": goal_line_params["x"] - goal_line_params["length"] / 2,
-            # posts are 2 3/8" wide => half = 19/16"
-            "radius": 19 / 16 / 12,
-            "reflect_x": True,
-            "resolution": 10,
-            "color": "red",
-            "zorder": 6,
-            "visible": net.get("visible", True),
-        }
-        crossbar_params.update(crossbar)
-        crossbar_params["width"] = crossbar_params.get(
-            "width", 6 + crossbar_params["radius"])
-        self._initialize_feature("crossbar", crossbar_params, alpha)
-
-        net_params = {
-            "feature_class": Net,
-            "x": crossbar_params["x"] + crossbar_params["radius"] * 2,
-            "length": 40 / 12,  # 40" deep
-            "width": crossbar_params["width"] + crossbar_params["radius"],
-            "thickness": 88 / 12,  # max width
-            "radius": 20 / 12,
-            "reflect_x": True,
-            "color": "grey",
-            "zorder": 5,
-        }
-        net_params.update(net)
-        self._initialize_feature("net", net_params, alpha)
-
-        for added_feature_name, added_feature in added_features.items():
-            self._initialize_feature(added_feature_name, added_feature, alpha)
 
 
 class NHLRink(Rink):
     """ Version of Rink class based off a typical NHL ice surface.
 
-    Includes an additional feature "crease_notch" for the little notches inside the crease.
+    Inherits from Rink.
 
-    See Rink for full documentation.
+    Includes an additional crease_notch feature for the little notches inside the crease.
     """
 
-    def __init__(self, **kwargs):
-        crease = kwargs.get("crease", {})
-        line_thickness = kwargs.get("line_thickness", 1 / 6)
-        half_length = kwargs.get("boards", {}).get("length", 200) / 2
-        half_goal_line_thickness = kwargs.get("goal_line", {}).get("length", line_thickness) / 2
-        goal_line_x = kwargs.get("goal_line", {}).get(
-            "x", half_length - 11 - half_goal_line_thickness)
-        crease_thickness = crease.get("thickness", line_thickness)
-        notch_width = 5 / 12
+    def _compute_feature_params(
+        self,
+        features,
+        line_thickness, line_color, line_zorder,
+        x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+    ):
+        features = super()._compute_feature_params(
+            features,
+            line_thickness, line_color, line_zorder,
+            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+        )
 
-        nhl_updates = {
-            "crease_notch": {
-                "feature_class": RinkRectangle,
-                "x": goal_line_x - 4 - crease_thickness / 2,
-                "y": ((crease.get("width", 8) - notch_width) / 2
-                      - crease_thickness),
-                "length": crease_thickness,
-                "width": notch_width,
-                "reflect_x": crease.get("reflect_x", True),
-                "reflect_y": crease.get("reflect_y", True),
-                "color": kwargs.get("line_color", "red"),
-                "zorder": kwargs.get("line_zorder", 5),
-                "visible": crease.get("visible", True),
-            },
+        notch_width = 5 / 12
+        crease_thickness = features["crease_outline"]["thickness"]
+
+        crease_notch = {
+            "feature_class": RinkRectangle,
+            "x": features["goal_line"]["x"] - 4 - crease_thickness / 2,
+            "y": (features["crease"]["width"] - notch_width) / 2 - crease_thickness,
+            "length": crease_thickness,
+            "width": notch_width,
+            "reflect_x": features["crease"]["reflect_x"],
+            "reflect_y": True,
+            "color": line_color,
+            "zorder": line_zorder,
         }
 
-        kwargs["crease_notch"] = {**nhl_updates["crease_notch"],
-                                  **kwargs.get("crease_notch", {})}
+        features["crease_notch"] = {**crease_notch, **features.get("crease_notch", {})}
 
-        super().__init__(**kwargs)
+        return features
 
 
 class NWHLRink(NHLRink):
-    """ Version of Rink class based off of the NWHL rink in the 2021 playoffs (Herb Brooks).
+    """ Version of Rink class based off of the NWHL (Herb Brooks) rink in the 2021 playoffs.
 
-    Includes additional features of "logo" for the logo at center ice and
-    "crease_notch" for the little notches inside the crease.  Also, removes
+    Inherits from NHLRink.
+
+    Includes additional features of logo for the logo at center ice and
+    crease_notch for the little notches inside the crease.  Also, removes
     the trapezoid and increases the size of the neutral zone.
-
-    See Rink for full documentation.
     """
 
-    def __init__(self, **kwargs):
-        half_width = kwargs.get("boards", {}).get("width", 85) / 2
-        center_radius = kwargs.get("center_circle", {}).get("radius", 15)
-        center_thickness = kwargs.get("center_circle", {}).get("thickness", 2)
+    def _compute_feature_params(self, features, line_thickness, line_color, line_zorder, x_dot_to_lines,
+                                y_dot_to_lines, goal_line_to_dot):
+        half_width = features.get("boards", {}).get("width", 85) / 2
+        center_radius = features.get("center_circle", {}).get("radius", 15)
+        center_thickness = 2
 
-        nwhl_updates = {
-            "nzone": {"length": 60, "color": "#B266FF"},
+        feature_defaults = {
+            "nzone": {
+                "length": 60,
+                "color": "#B266FF",
+            },
             "ref_circle": {"y": half_width},
             "center_circle": {
-                "thickness": center_thickness,
+                "thickness": 2,
                 "color": "#003366",
                 "zorder": 12,
                 "linewidth": 0,  # Avoid drawing line in circle when alpha isn't 1.
@@ -611,9 +524,10 @@ class NWHLRink(NHLRink):
             "trapezoid": {"visible": False},
             "logo": {
                 "feature_class": CircularImage,
-                "image_path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
+                "thickness": center_thickness,
                 "radius": center_radius - center_thickness,
-                "zorder": 11
+                "zorder": 11,
+                "image_path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
             },
             "red_line": {
                 "feature_class": LowerInwardArcRectangle,
@@ -622,56 +536,84 @@ class NWHLRink(NHLRink):
             },
         }
 
-        for k, v in nwhl_updates.items():
-            kwargs[k] = {**v, **kwargs.get(k, {})}
+        features = self._merge_params(features, feature_defaults)
 
-        super().__init__(**kwargs)
+        features = super()._compute_feature_params(
+            features,
+            line_thickness, line_color, line_zorder,
+            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+        )
+
+        return features
 
 
 class IIHFRink(Rink):
     """ Version of Rink class with dimensions based off of IIHF regulations.
 
-    Includes an additional feature "crease_notch" for the little notches inside the crease.
+    Inherits from Rink.
 
-    See Rink for full documentation.
+    Includes an additional feature "crease_notch" for the little notches inside the crease.
     """
 
-    def __init__(self, **kwargs):
-        iihf_updates = {
-            "boards": {"length": 197, "width": 98.4},
+    def __init__(
+        self,
+        rotation=0, x_shift=0, y_shift=0, alpha=None,
+        line_thickness=1 / 6, line_color="red", line_zorder=5,
+        x_dot_to_lines=2, y_dot_to_lines=9 / 12, goal_line_to_dot=22,
+        boards=None,
+        **features,
+    ):
+        boards = boards or {}
+        boards["length"] = boards.get("length", 197)
+        boards["width"] = boards.get("width", 98.4)
+
+        super().__init__(
+            rotation, x_shift, y_shift, alpha,
+            line_thickness, line_color, line_zorder,
+            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot,
+            boards,
+            **features,
+        )
+
+    def _compute_feature_params(
+        self,
+        features,
+        line_thickness, line_color, line_zorder,
+        x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+    ):
+        half_goal_line_thickness = features.get("goal_line", {}).get("length", line_thickness) / 2
+
+        feature_defaults = {
             "nzone": {"length": 47},
             "trapezoid": {"visible": False},
             "crease": {"length": 0, "width": 11.6, "radius": 5.9},
+            "goal_line": {"x": self._boards.length / 2 - 13.1 + half_goal_line_thickness},
         }
 
-        line_thickness = kwargs.get("line_thickness", 1 / 6)
-        half_goal_line_thickness = kwargs.get("goal_line", {}).get("length", line_thickness) / 2
-        boards_length = kwargs.get("boards", {}).get("length", 197)
-        iihf_updates["goal_line"] = {"x": boards_length / 2 - 13.1 + half_goal_line_thickness}
-        goal_line_x = (kwargs.get("goal_line", {}).get("x", iihf_updates["goal_line"]["x"])
-                       - half_goal_line_thickness)
+        features = self._merge_params(features, feature_defaults)
 
-        iihf_updates["faceoff_circle"] = {"x": goal_line_x - 22}
+        features = super()._compute_feature_params(
+            features,
+            line_thickness, line_color, line_zorder,
+            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+        )
 
-        crease = kwargs.get("crease", {})
-        crease_thickness = crease.get("thickness", line_thickness)
         notch_size = 5 / 12
+        crease_thickness = features["crease_outline"]["thickness"]
 
-        iihf_updates["crease_notch"] = {
+        crease_notch = {
             "feature_class": RinkL,
-            "x": goal_line_x - 4,
+            "x": features["goal_line"]["x"] - half_goal_line_thickness - 4,
             "y": 4,
             "length": notch_size,
             "width": -notch_size,
             "thickness": crease_thickness,
-            "reflect_x": crease.get("reflect_x", True),
-            "reflect_y": crease.get("reflect_y", True),
-            "color": kwargs.get("line_color", "red"),
-            "zorder": kwargs.get("line_zorder", 5),
-            "visible": crease.get("visible", True),
+            "reflect_x": features["crease"]["reflect_x"],
+            "reflect_y": True,
+            "color": line_color,
+            "zorder": line_zorder,
         }
 
-        for k, v in iihf_updates.items():
-            kwargs[k] = {**v, **kwargs.get(k, {})}
+        features["crease_notch"] = {**crease_notch, **features.get("crease_notch", {})}
 
-        super().__init__(**kwargs)
+        return features
