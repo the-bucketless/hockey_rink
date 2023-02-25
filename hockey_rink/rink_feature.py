@@ -960,7 +960,7 @@ class RinkImage(RinkRectangle):
         img = ax.imshow(self.image, extent=extent, transform=image_transform, **image_kwargs)
 
         if self.clip_xy is not None:
-            img = self._clip_patch(img, transform, xlim, ylim)
+            img = self._clip_patch(img, image_transform, xlim, ylim)
 
         return img
 
