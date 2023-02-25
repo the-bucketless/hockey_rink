@@ -79,8 +79,12 @@ class RinkFeature(ABC):
         visible: bool
             Whether or not the feature will be drawn.
 
+        rotation: float
+            Degree to rotate the feature around its x and y-coordinates.
+
         clip_xy: (np.array, np.array)
             Coordinates used to clip the feature's coordinates when drawing.
+            When a transform is included in the feature, it will only be applied to the feature, not the clip path.
 
         polygon_kwargs: dict
             Any additional arguments to be passed to plt.Polygon.
@@ -93,6 +97,7 @@ class RinkFeature(ABC):
         radius=0, resolution=500,
         is_reflected_x=False, is_reflected_y=False,
         visible=True, color=None, zorder=None,
+        rotation=0,
         clip_xy=None,
         **polygon_kwargs,
     ):
@@ -111,6 +116,7 @@ class RinkFeature(ABC):
             visible: bool (default=True)
             color: color (optional)
             zorder: float (optional)
+            rotation: float (default=0)
             clip_xy: (np.array, np.array) (optional)
             polygon_kwargs: dict (optional)
         """
@@ -125,6 +131,7 @@ class RinkFeature(ABC):
         self.is_reflected_x = is_reflected_x
         self.is_reflected_y = is_reflected_y
         self.visible = visible
+        self.rotation = rotation
         self.clip_xy = clip_xy
         self.polygon_kwargs = polygon_kwargs
 
@@ -310,15 +317,20 @@ class RinkFeature(ABC):
         if ax is None:
             ax = plt.gca()
 
-        transform = transform or ax.transData
-
         patch = self.get_polygon()
 
         if patch is None:
             return None
 
+        transform = transform or ax.transData
+
+        patch_x, patch_y = self._convert_xy(0, 0)
+        patch_rotation = Affine2D().rotate_deg_around(patch_x, patch_y, self.rotation)
+
+        patch_transform = patch.get_transform() + patch_rotation + transform
+
         ax.add_patch(patch)
-        patch.set_transform(transform)
+        patch.set_transform(patch_transform)
 
         if self.clip_xy or xlim or ylim:
             patch = self._clip_patch(patch, transform, xlim, ylim)
@@ -795,6 +807,7 @@ class Boards(RoundedRectangle):
         radius=28, resolution=500,
         is_reflected_x=False, is_reflected_y=False,
         visible=True, color="black", zorder=100,
+        rotation=0,
         clip_xy=None,
         **polygon_kwargs,
     ):
@@ -828,6 +841,7 @@ class Boards(RoundedRectangle):
             radius, resolution,
             is_reflected_x, is_reflected_y,
             visible, color, zorder,
+            rotation,
             clip_xy,
             **polygon_kwargs,
         )
@@ -869,8 +883,9 @@ class RinkImage(RinkRectangle):
         radius=None, resolution=None,
         is_reflected_x=False, is_reflected_y=False,
         visible=True, color=None, zorder=None,
+        rotation=0,
         clip_xy=None,
-        image=None, image_path=None, rotation=0,
+        image=None, image_path=None,
         **polygon_kwargs,
     ):
         """ Initialize attributes.
@@ -893,13 +908,10 @@ class RinkImage(RinkRectangle):
             visible: bool (default=True)
             color: color (optional)
             zorder: float (optional)
+            rotation: float (default=0)
             clip_xy: (np.array, np.array) (optional)
             image: np.array (optional)
             image_path: string (optional)
-
-            rotation: float (default=0)
-                Degree to rotate the image around its center.
-
             polygon_kwargs: dict (optional)
 
         Raises:
@@ -910,7 +922,6 @@ class RinkImage(RinkRectangle):
             raise Exception("One of image and image_path must be specified when creating RinkImage.")
 
         self.image = plt.imread(image_path) if image is None else image
-        self.rotation = rotation
 
         image_height, image_width, *_ = self.image.shape
         if length is None:
@@ -924,6 +935,7 @@ class RinkImage(RinkRectangle):
             radius, resolution,
             is_reflected_x, is_reflected_y,
             visible, color, zorder,
+            rotation,
             clip_xy,
             **polygon_kwargs,
         )
@@ -960,7 +972,7 @@ class RinkImage(RinkRectangle):
         img = ax.imshow(self.image, extent=extent, transform=image_transform, **image_kwargs)
 
         if self.clip_xy is not None:
-            img = self._clip_patch(img, image_transform, xlim, ylim)
+            img = self._clip_patch(img, transform, xlim, ylim)
 
         return img
 
@@ -980,8 +992,9 @@ class CircularImage(RinkImage):
         radius=0, resolution=500,
         is_reflected_x=False, is_reflected_y=False,
         visible=True, color=None, zorder=None,
+        rotation=0,
         clip_xy=None,
-        image=None, image_path=None, rotation=0,
+        image=None, image_path=None,
         **polygon_kwargs,
     ):
         """ Initialize attributes.
@@ -1010,10 +1023,7 @@ class CircularImage(RinkImage):
             clip_xy: Ignored
             image: np.array (optional)
             image_path: string (optional)
-
             rotation: float (default=0)
-                Degree to rotate the image around its center.
-
             polygon_kwargs: dict (optional)
 
         Raises:
@@ -1031,8 +1041,9 @@ class CircularImage(RinkImage):
             radius, resolution,
             is_reflected_x, is_reflected_y,
             visible, color, zorder,
+            rotation,
             clip_xy,
-            image, image_path, rotation,
+            image, image_path,
             **polygon_kwargs,
         )
 
