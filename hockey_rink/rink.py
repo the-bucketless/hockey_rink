@@ -71,14 +71,11 @@ class Rink(BaseRinkPlot):
 
         Updates to existing features and new features both expect a dict with key/value pairs corresponding to
         RinkFeature attributes. Additionally, features expect a key for the feature_class with a value indicating the
-        type of RinkFeature class being used. They will also accept an is_constrained key with a boolean value. If this
-        is not provided or is set to True, the feature will use the rink's boards for the clip_xy attribute of the
-        feature.
+        type of RinkFeature class being used.
 
             eg)
                 feature_name = {
                     "feature_class": feature_class,
-                    "is_constrained": feature_is_constrained,
                     "x": feature_x,
                     "y": feature_y
                     "length": feature_length,
@@ -90,17 +87,22 @@ class Rink(BaseRinkPlot):
                     "reflect_y": feature_reflect_y
                     "visible": feature_visible,
                     "rotation": feature_rotation,
+                    "clip_xy": feature_clip_xy,
                     ...
                 }
         Explanations for the attributes can be found in the RinkFeature documentation.
 
         Some exceptions are:
-            Multiple x and y coordinates can be passed as an array_like value.  If multiple values are provided,
+            Multiple x and y coordinates can be passed as an array_like value. If multiple values are provided,
             one feature will be created for each combination of coordinates.
 
-            x and y values for faceoff lines correspond to the nearest faceoff dot.  Each coordinate will be
+            x and y values for faceoff lines correspond to the nearest faceoff dot. Each coordinate will be
             included in four L shapes (above and right, below and left, etc) with the shape being altered
-            accordingly.  The exact coordinate is determined by the values passed to x_dot_to_lines and y_dot_to_lines.
+            accordingly. The exact coordinate is determined by the values passed to x_dot_to_lines and y_dot_to_lines.
+
+            clip_xy also accepts a boolean value and defaults to True for all features.
+                When True, the boards will be used as the clip path.
+                When False, no clip path is used.
 
         Other attributes can be provided so long as they can be used by matplotlib's Polygon (such as color or zorder)
         or are appropriate for that particular feature (eg RinkImage accepts an image_path attribute).

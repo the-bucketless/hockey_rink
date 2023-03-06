@@ -98,7 +98,7 @@ class BaseRink(ABC):
 
         feature_class = params.pop("feature_class")
 
-        if params.pop("is_constrained", True):
+        if params.get("clip_xy", True) is True:
             params["clip_xy"] = self._boards.get_xy_for_clip()
 
         xs = np.ravel(params.get("x", [0]))
