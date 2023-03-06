@@ -104,8 +104,8 @@ class BaseRink(ABC):
         xs = np.ravel(params.get("x", [0]))
         ys = np.ravel(params.get("y", [0]))
 
-        x_reflections = [False, True] if params.pop("reflect_x", False) else [False]
-        y_reflections = [False, True] if params.pop("reflect_y", False) else [False]
+        x_reflections = np.ravel(params.pop("is_reflected_x", False))
+        y_reflections = np.ravel(params.pop("is_reflected_y", False))
 
         params["alpha"] = params.get("alpha", alpha)
 

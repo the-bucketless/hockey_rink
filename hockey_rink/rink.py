@@ -83,8 +83,8 @@ class Rink(BaseRinkPlot):
                     "thickness": feature_thickness,
                     "radius": feature_radius,
                     "resolution": feature_resolution,
-                    "reflect_x": feature_reflect_x,
-                    "reflect_y": feature_reflect_y
+                    "is_reflected_x": feature_is_reflected_x,
+                    "is_reflected_y": feature_is_reflected_y
                     "visible": feature_visible,
                     "rotation": feature_rotation,
                     "clip_xy": feature_clip_xy,
@@ -93,8 +93,9 @@ class Rink(BaseRinkPlot):
         Explanations for the attributes can be found in the RinkFeature documentation.
 
         Some exceptions are:
-            Multiple x and y coordinates can be passed as an array_like value. If multiple values are provided,
+            Multiple x and y coordinates can be passed as an array-like value. If multiple values are provided,
             one feature will be created for each combination of coordinates.
+            Likewise, for multiple is_reflected_x and is_reflected_y values.
 
             x and y values for faceoff lines correspond to the nearest faceoff dot. Each coordinate will be
             included in four L shapes (above and right, below and left, etc) with the shape being altered
@@ -245,7 +246,7 @@ class Rink(BaseRinkPlot):
                 "feature_class": RinkRectangle,
                 "length": 1,
                 "width": self._boards.width,
-                "reflect_x": True,
+                "is_reflected_x": [False, True],
                 "color": "blue",
                 "zorder": 10,
             },
@@ -253,7 +254,7 @@ class Rink(BaseRinkPlot):
                 "feature_class": RinkRectangle,
                 "length": line_thickness,
                 "width": self._boards.width,
-                "reflect_x": True,
+                "is_reflected_x": [False, True],
                 "color": line_color,
                 "zorder": line_zorder,
             },
@@ -262,8 +263,8 @@ class Rink(BaseRinkPlot):
                 "y": 11,
                 "width": 3,  # 11' from center to 14' from center.
                 "thickness": line_thickness,
-                "reflect_x": True,
-                "reflect_y": True,
+                "is_reflected_x": [False, True],
+                "is_reflected_y": [False, True],
                 "color": line_color,
                 "zorder": line_zorder,
             },
@@ -294,8 +295,8 @@ class Rink(BaseRinkPlot):
                 "width": 2,  # Hashmarks are 2' long.
                 "thickness": line_thickness,
                 "resolution": 5000,  # Increase resolution to keep lines straight.
-                "reflect_x": True,
-                "reflect_y": True,
+                "is_reflected_x": [False, True],
+                "is_reflected_y": [False, True],
                 "color": line_color,
                 "zorder": line_zorder,
             },
@@ -304,8 +305,8 @@ class Rink(BaseRinkPlot):
                 "length": 16 / 12,  # Edge of circle to edge of inner shape.
                 "thickness": 1 / 12,
                 "radius": 1,
-                "reflect_x": True,
-                "reflect_y": True,
+                "is_reflected_x": [False, True],
+                "is_reflected_y": [False, True],
                 "color": "red",
                 "zorder": 5,
             },
@@ -314,8 +315,8 @@ class Rink(BaseRinkPlot):
                 "length": 4,
                 "width": 3,
                 "thickness": line_thickness,
-                "reflect_x": True,
-                "reflect_y": True,
+                "is_reflected_x": [False, True],
+                "is_reflected_y": [False, True],
                 "color": line_color,
                 "zorder": line_zorder,
             },
@@ -324,7 +325,7 @@ class Rink(BaseRinkPlot):
                 "length": 4.5,  # 4'6" rectangular section.
                 "width": 8,  # 8' from outside edge to outside edge.
                 "radius": 1.5,  # 6' total length.
-                "reflect_x": True,
+                "is_reflected_x": [False, True],
                 "color": "lightblue",
                 "zorder": 2,
             },
@@ -336,7 +337,7 @@ class Rink(BaseRinkPlot):
             "crossbar": {
                 "feature_class": Crossbar,
                 "radius": 19 / 16 / 12,  # Posts are 2+3/8" wide, half = 19/16"
-                "reflect_x": True,
+                "is_reflected_x": [False, True],
                 "resolution": 10,
                 "color": "red",
                 "zorder": 6,
@@ -346,7 +347,7 @@ class Rink(BaseRinkPlot):
                 "length": 40 / 12,  # 40' deep.
                 "thickness": 88 / 12,  # Width from outer edge to outer edge.
                 "radius": 20 / 12,
-                "reflect_x": True,
+                "is_reflected_x": [False, True],
                 "color": "grey",
                 "zorder": 5,
             }
@@ -483,8 +484,8 @@ class NHLRink(Rink):
             "y": (features["crease"]["width"] - notch_width) / 2 - crease_thickness,
             "length": crease_thickness,
             "width": notch_width,
-            "reflect_x": features["crease"]["reflect_x"],
-            "reflect_y": True,
+            "is_reflected_x": features["crease"]["is_reflected_x"],
+            "is_reflected_y": [False, True],
             "color": line_color,
             "zorder": line_zorder,
         }
@@ -534,7 +535,7 @@ class NWHLRink(NHLRink):
             "red_line": {
                 "feature_class": LowerInwardArcRectangle,
                 "radius": center_radius,
-                "reflect_y": True,
+                "is_reflected_y": [False, True],
             },
         }
 
@@ -610,8 +611,8 @@ class IIHFRink(Rink):
             "length": notch_size,
             "width": -notch_size,
             "thickness": crease_thickness,
-            "reflect_x": features["crease"]["reflect_x"],
-            "reflect_y": True,
+            "is_reflected_x": features["crease"]["is_reflected_x"],
+            "is_reflected_y": [False, True],
             "color": line_color,
             "zorder": line_zorder,
         }
