@@ -992,14 +992,20 @@ class RinkImage(RinkRectangle):
         image_transform += transform
 
         # If extent not provided, use length and width of the image to calculate it.
-        if "extent" in image_kw:
-            extent = image_kw.pop("extent")
-        else:
-            polygon_x, polygon_y = self.get_polygon_xy()
-            extent = [
-                np.min(polygon_x), np.max(polygon_x),
-                np.min(polygon_y), np.max(polygon_y),
-            ]
+        # Avoid using get_limits method to allow for different extent and clip paths.
+        polygon_x, polygon_y = self.get_polygon_xy()
+        min_x = np.min(polygon_x)
+        max_x = np.max(polygon_x)
+        min_y = np.min(polygon_y)
+        max_y = np.max(polygon_y)
+
+        extent = image_kw.pop("extent", [min_x, max_x, min_y, max_y])
+
+        # Avoid drawing image if extent is entirely outside the bounds.
+        if xlim and (xlim[0] > max_x or xlim[1] < min_x):
+            return None
+        if ylim and (ylim[0] > max_x or ylim[1] < min_y):
+            return None
 
         img = ax.imshow(self.image, extent=extent, transform=image_transform, **image_kw)
 
