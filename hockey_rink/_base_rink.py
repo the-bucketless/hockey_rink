@@ -305,14 +305,17 @@ class BaseRink(ABC):
         ax.set_aspect("equal")
         ax.axis("off")
 
+        # Maintain the potentially unshifted version of xlim and ylim. Use the centered version for features.
         if display_range != "full" or xlim is not None or ylim is not None:
-            xlim, ylim = self._get_limits(display_range, xlim, ylim)
+            _xlim, _ylim = self._get_limits(display_range, xlim, ylim)
+        else:
+            _xlim, _ylim = xlim, ylim
 
         transform = self._get_transform(ax)
-        self._boards.draw(ax, transform, xlim, ylim)
+        self._boards.draw(ax, transform, _xlim, _ylim)
 
         for feature in self._features.values():
-            feature_patch = feature.draw(ax, transform, xlim, ylim)
+            feature_patch = feature.draw(ax, transform, _xlim, _ylim)
 
             # Track outer bounds of features not bounded by the boards.
             (feature_xmin, feature_xmax), (feature_ymin, feature_ymax) = feature.get_limits()
