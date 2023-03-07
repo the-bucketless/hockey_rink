@@ -268,12 +268,33 @@ class RinkFeature(ABC):
         return self._convert_xy(x, y)
 
     def _clip_patch(self, patch, transform, xlim, ylim):
-        """ Clips a Polygon to the smallest dimensions of clip_xy and the bbox created by xlim and ylim. """
+        """
+        Clips a Polygon to the smallest dimensions of clip_xy and the bbox created by xlim and ylim.
+        If the Polygon falls entirely outside the clip path, None is returned.
+        """
 
         # Use either the bounds provided or the feature's own bounds to clip it.
         (xmin, xmax), (ymin, ymax) = self.get_limits()
-        xlim = (max(xlim[0], xmin), min(xlim[1], xmax)) if xlim else (xmin, xmax)
-        ylim = (max(ylim[0], ymin), min(ylim[1], ymax)) if ylim else (ymin, ymax)
+
+        if xlim:
+            # Remove patch if entirely to the left or right of xlim.
+            if xmin > xlim[1] or xmax < xlim[0]:
+                return None
+
+            # Set the outer bounds to the smaller of the clip path and xlim.
+            xlim = (max(xlim[0], xmin), min(xlim[1], xmax))
+        else:
+            xlim = (xmin, xmax)
+
+        if ylim:
+            # Remove patch if entirely above or below of ylim.
+            if ymin > ylim[1] or ymax < ylim[0]:
+                return None
+
+            # Set the outer bounds to the smaller of the clip path and ylim.
+            ylim = (max(ylim[0], ymin), min(ylim[1], ymax))
+        else:
+            ylim = (ymin, ymax)
 
         # Clip based on class attribute.
         if self.clip_xy:
@@ -329,11 +350,14 @@ class RinkFeature(ABC):
 
         patch_transform = patch.get_transform() + patch_rotation + transform
 
-        ax.add_patch(patch)
-        patch.set_transform(patch_transform)
-
         if self.clip_xy or xlim or ylim:
             patch = self._clip_patch(patch, transform, xlim, ylim)
+
+            if patch is None:
+                return patch
+
+        ax.add_patch(patch)
+        patch.set_transform(patch_transform)
 
         return patch
 
