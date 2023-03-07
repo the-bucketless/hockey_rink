@@ -316,6 +316,8 @@ class BaseRink(ABC):
 
         for feature in self._features.values():
             feature_patch = feature.draw(ax, transform, _xlim, _ylim)
+            if feature_patch is None:
+                continue
 
             # Track outer bounds of features not bounded by the boards.
             (feature_xmin, feature_xmax), (feature_ymin, feature_ymax) = feature.get_limits()
