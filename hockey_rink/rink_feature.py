@@ -41,6 +41,8 @@ from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
 import numpy as np
+from PIL import Image
+import urllib
 
 
 class RinkFeature(ABC):
@@ -945,7 +947,13 @@ class RinkImage(RinkRectangle):
         if image is None and image_path is None:
             raise Exception("One of image and image_path must be specified when creating RinkImage.")
 
-        self.image = plt.imread(image_path) if image is None else image
+        if image is None:
+            try:
+                self.image = np.array(Image.open(urllib.request.urlopen(image_path)))
+            except urllib.error.URLError:
+                self.image = plt.imread(image_path)
+        else:
+            self.image = image
 
         image_height, image_width, *_ = self.image.shape
         if length is None:
