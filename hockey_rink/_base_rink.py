@@ -16,6 +16,10 @@ class BaseRink(ABC):
     """ Abstract base class for drawing rinks using matplotlib.
 
     Attributes:
+        rotation: float
+            Degree the rink will be rotated. This can be altered for different Axes, but rotation will remain the
+            default when drawing.
+
         x_shift: float
             Amount x-coordinates are to be shifted.
 
@@ -71,9 +75,13 @@ class BaseRink(ABC):
 
         self.x_shift = x_shift
         self.y_shift = y_shift
-        self._rotation = Affine2D().rotate_deg(rotation)
+
+        self.rotation = rotation
+        self._rotations = {}
+
         boards = boards or {}
         self._boards = Boards(alpha=alpha, **boards)
+
         self._features = {}
         self._feature_xlim, self._feature_ylim = self._boards.get_limits()
 
@@ -211,7 +219,7 @@ class BaseRink(ABC):
     def _get_transform(self, ax):
         """ Return the matplotlib Transform to apply to features of the rink. """
 
-        return self._rotation + ax.transData
+        return self._rotations[ax] + ax.transData
 
     @staticmethod
     def copy_(param):
@@ -224,15 +232,13 @@ class BaseRink(ABC):
 
         return param
 
-    def _rotate_xy(self, x, y):
+    def _rotate_xy(self, x, y, ax=None):
         """ Rotate x,y-coordinates with rink rotation. """
-        if self._rotation:
-            xy = self._rotation.transform(tuple(zip(x, y)))
-            return xy[:, 0], xy[:, 1]
-        else:
-            return x, y
+        rotation = Affine2D().rotate_deg(self.rotation) if ax is None else self._rotations[ax]
+        xy = rotation.transform(tuple(zip(x, y)))
+        return xy[:, 0], xy[:, 1]
 
-    def convert_xy(self, x, y):
+    def convert_xy(self, x, y, ax=None):
         """ Convert x,y-coordinates to the scale used for the rink. """
 
         x = self.copy_(x)
@@ -241,7 +247,7 @@ class BaseRink(ABC):
         x = np.ravel(x) - self.x_shift
         y = np.ravel(y) - self.y_shift
 
-        return self._rotate_xy(x, y)
+        return self._rotate_xy(x, y, ax)
 
     def draw(self, ax=None, display_range="full", xlim=None, ylim=None, rotation=None):
         """ Draw the rink.
@@ -296,11 +302,11 @@ class BaseRink(ABC):
             matplotlib Axes
         """
 
-        if rotation is not None:
-            self._rotation = Affine2D().rotate_deg(rotation)
-
         if ax is None:
             ax = plt.gca()
+
+        rotation = self.rotation if rotation is None else rotation
+        self._rotations[ax] = Affine2D().rotate_deg(rotation)
 
         ax.set_aspect("equal")
         ax.axis("off")
@@ -382,8 +388,8 @@ class BaseRink(ABC):
         # Need each combination of x and y bounds.
         x, y = list(zip(*product(xlim, ylim)))
 
-        # Need to shift coordinates so convert_xy can reverse shift.
-        x, y = self.convert_xy(np.array(x) + self.x_shift, np.array(y) + self.y_shift)
+        # Coordinates already shifted, only need rotation.
+        x, y = self._rotate_xy(np.array(x), np.array(y), ax)
 
         ax.set_xlim(np.min(x), np.max(x))
         ax.set_ylim(np.min(y), np.max(y))
