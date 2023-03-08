@@ -68,7 +68,7 @@ class Rink(BaseRinkPlot):
 
     def __init__(
         self,
-        rotation=0, x_shift=0, y_shift=0, alpha=None,
+        rotation=0, x_shift=0, y_shift=0, alpha=None, linewidth=None,
         line_thickness=1 / 6, line_color="red", line_zorder=5,
         x_dot_to_lines=2, y_dot_to_lines=9 / 12, goal_line_to_dot=20,
         boards=None,
@@ -150,7 +150,7 @@ class Rink(BaseRinkPlot):
             eg) trapezoid={"visible": False}
 
         New features can be included by passing in a dict with a name not included in the default list.
-            eg) new_feature={"class": feature_class, ...}
+            eg) new_feature={"feature_class": feature_class, ...}
 
         The default zorders are:
             1: nzone, ozone, dzone
@@ -188,6 +188,11 @@ class Rink(BaseRinkPlot):
 
                 If not None, will be used for all features of the rink that don't override it.
 
+            linewidth: float (optional)
+                The linewidth to use in creating the Polygons for features. By default, all features include linewidth
+                to ensure they appear. This may also cause them to be slightly larger than they should be relative other
+                features. When using a larger figsize, linewidth can be reduced or set to 0.
+
             line_thickness: float (default=1/6)
                 Thickness of all the thin lines on the ice (eg the goal line and faceoff circles) if not
                 otherwise updated.
@@ -224,7 +229,7 @@ class Rink(BaseRinkPlot):
                 Updates to default features and new features to be added, as described above.
         """
 
-        super().__init__(rotation, x_shift, y_shift, alpha, boards)
+        super().__init__(rotation, x_shift, y_shift, alpha, linewidth, boards)
 
         features = self._compute_feature_params(
             features,
@@ -233,7 +238,7 @@ class Rink(BaseRinkPlot):
         )
 
         for feature_name, feature_params in features.items():
-            self._initialize_feature(feature_name, feature_params, alpha)
+            self._initialize_feature(feature_name, feature_params, alpha, linewidth)
 
     def _compute_feature_params(
         self,
@@ -519,8 +524,12 @@ class NHLRink(Rink):
 
 
 class NWHLRink(NHLRink):
-    def _compute_feature_params(self, features, line_thickness, line_color, line_zorder, x_dot_to_lines,
-                                y_dot_to_lines, goal_line_to_dot):
+    def _compute_feature_params(
+        self,
+        features,
+        line_thickness, line_color, line_zorder,
+        x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+    ):
         half_width = features.get("boards", {}).get("width", 85) / 2
         center_radius = features.get("center_circle", {}).get("radius", 15)
         center_thickness = 2
@@ -567,7 +576,7 @@ class NWHLRink(NHLRink):
 class IIHFRink(Rink):
     def __init__(
         self,
-        rotation=0, x_shift=0, y_shift=0, alpha=None,
+        rotation=0, x_shift=0, y_shift=0, alpha=None, linewidth=None,
         line_thickness=1 / 6, line_color="red", line_zorder=5,
         x_dot_to_lines=2, y_dot_to_lines=9 / 12, goal_line_to_dot=22,
         boards=None,
@@ -578,7 +587,7 @@ class IIHFRink(Rink):
         boards["width"] = boards.get("width", 98.4)
 
         super().__init__(
-            rotation, x_shift, y_shift, alpha,
+            rotation, x_shift, y_shift, alpha, linewidth,
             line_thickness, line_color, line_zorder,
             x_dot_to_lines, y_dot_to_lines, goal_line_to_dot,
             boards,

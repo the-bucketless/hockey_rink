@@ -1001,6 +1001,9 @@ class RinkImage(RinkRectangle):
 
         extent = image_kw.pop("extent", [min_x, max_x, min_y, max_y])
 
+        # Avoid including linewidth in images.
+        image_kw.pop("linewidth", None)
+
         # Avoid drawing image if extent is entirely outside the bounds.
         if xlim and (xlim[0] > max_x or xlim[1] < min_x):
             return None

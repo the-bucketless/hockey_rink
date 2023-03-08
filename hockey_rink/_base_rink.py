@@ -39,20 +39,16 @@ class BaseRink(ABC):
             align with the drawing, not to alter the drawing to align with the coordinates.
     """
 
-    def __init__(self, rotation=0, x_shift=0, y_shift=0, alpha=None, boards=None):
+    def __init__(self, rotation=0, x_shift=0, y_shift=0, alpha=None, linewidth=None, boards=None):
         """ Initializes attributes.
 
         Parameters:
             rotation: float (default=0)
             x_shift: float (default=0)
             y_shift: float (default=0)
-
             alpha: float (default=0)
-                The alpha blending value, between 0 (transparent) and 1 (opaque).
-                If not None, will be used for all features of the rink that don't override it.
-
+            linewidth: float (optional)
             boards: dict (optional)
-                Attributes for the Boards object.
         """
 
         self.x_shift = x_shift
@@ -62,12 +58,14 @@ class BaseRink(ABC):
         self._rotations = {}
 
         boards = boards or {}
+        if linewidth is not None:
+            boards["linewidth"] = linewidth
         self._boards = Boards(alpha=alpha, **boards)
 
         self._features = {}
         self._feature_xlim, self._feature_ylim = self._boards.get_limits()
 
-    def _initialize_feature(self, feature_name, params, alpha):
+    def _initialize_feature(self, feature_name, params, alpha, linewidth):
         """ Initialize a feature of the rink at each coordinate it's required.
 
         Parameters:
@@ -81,6 +79,9 @@ class BaseRink(ABC):
 
             alpha: float
                 Universal alpha parameter to set transparency of all features that don't override it.
+
+            linewidth: float
+                Universal linewidth parameter to set linewidth of all features that don't override it.
         """
 
         # Copy to avoid mutation.
@@ -98,6 +99,9 @@ class BaseRink(ABC):
         y_reflections = np.ravel(params.pop("is_reflected_y", False))
 
         params["alpha"] = params.get("alpha", alpha)
+
+        if linewidth is not None:
+            params["linewidth"] = params.get("linewidth", linewidth)
 
         for i, (x, y, x_reflection, y_reflection) in enumerate(
             product(xs, ys, x_reflections, y_reflections)
