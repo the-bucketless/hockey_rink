@@ -249,12 +249,15 @@ class BaseRink(ABC):
 
         return self._rotate_xy(x, y, ax)
 
-    def draw(self, ax=None, display_range="full", xlim=None, ylim=None, rotation=None):
+    def draw(self, ax=None, figsize=None, display_range="full", xlim=None, ylim=None, rotation=None):
         """ Draw the rink.
 
         Parameters:
             ax: matplotlib Axes; optional
                 Axes in which to draw the rink.  If not provided, the currently-active Axes is used.
+
+            figsize: (float, float) (optional)
+                Width, height in inches of the matplotlib Figure.
 
             display_range: {"full", "half", "offense", "defense", "ozone", "dzone"}; default: "full"
                 The portion of the rink to display.  The entire rink is drawn regardless, display_range only
@@ -304,6 +307,9 @@ class BaseRink(ABC):
 
         if ax is None:
             ax = plt.gca()
+
+        if figsize is not None:
+            plt.gcf().set_size_inches(*figsize)
 
         rotation = self.rotation if rotation is None else rotation
         self._rotations[ax] = Affine2D().rotate_deg(rotation)
