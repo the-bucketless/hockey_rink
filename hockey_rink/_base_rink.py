@@ -315,7 +315,10 @@ class BaseRink(ABC):
         self._rotations[ax] = Affine2D().rotate_deg(rotation)
 
         ax.set_aspect("equal")
-        ax.axis("off")
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
 
         # Maintain the potentially unshifted version of xlim and ylim. Use the centered version for features.
         if display_range != "full" or xlim is not None or ylim is not None:
