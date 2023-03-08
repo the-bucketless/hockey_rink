@@ -207,8 +207,8 @@ class BaseRink(ABC):
 
     def _get_transform(self, ax):
         """ Return the matplotlib Transform to apply to features of the rink. """
-
-        return self._rotations[ax] + ax.transData
+        rotation = self._rotations.get(ax, Affine2D().rotate_deg(self.rotation))
+        return rotation + ax.transData
 
     @staticmethod
     def copy_(param):
