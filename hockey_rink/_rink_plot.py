@@ -779,11 +779,15 @@ class BaseRinkPlot(BaseRink):
                 Items that don't need to be removed.
         """
 
-        keep = np.ravel(keep)
-
         if ax is None:
             ax = plt.gca()
 
+        # Early exit if rink hasn't been drawn.
+        if ax not in self._drawn:
+            return
+
+        keep = set(np.ravel(keep)).union(self._drawn[ax])
+
         for child in ax.get_children():
-            if child not in self._drawn[ax] and child not in keep:
+            if child not in keep:
                 child.remove()
