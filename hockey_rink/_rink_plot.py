@@ -786,7 +786,7 @@ class BaseRinkPlot(BaseRink):
         if ax not in self._drawn:
             return
 
-        keep = set(np.ravel(keep)).union(self._drawn[ax])
+        keep = self._drawn[ax].union(np.ravel(keep))
 
         for child in ax.get_children():
             if child not in keep:

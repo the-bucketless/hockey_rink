@@ -332,7 +332,7 @@ class BaseRink(ABC):
             )
 
         # Store children of Axes to allow for clear of plotted objects.
-        self._drawn[ax] = list(ax.get_children())
+        self._drawn[ax] = set(ax.get_children())
 
         ax = self.set_display_range(ax, display_range, xlim, ylim)
 
