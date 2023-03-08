@@ -15,18 +15,45 @@ class Rink(BaseRinkPlot):
 
     Allows for customization to support any number of different possible rink dimensions.
 
-    Default coordinate system and feature dimensions correspond to those used by the NHL.
-        ie) All lengths are measured in feet.
-            x-coordinates go from -100 to 100 and y-coordinates from -42.5 to 42.5.
+    Default coordinate system and feature dimensions correspond to those used by the NHL. ie) All lengths are measured
+    in feet and coordinates range from eg) -100 to 100 in x-coordinates for an NHL rink.
+
+    By default, will include the following features:
+            nzone
+            ozone
+            dzone
+            red_line
+            blue_line
+            goal_line
+            trapezoid
+            ref_circle
+            center_circle
+            center_dot
+            faceoff_circle
+            faceoff_dot
+            faceoff_lines
+            crease
+            crease_outline
+            crossbar
+            net
+            crease_notch (in all but Rink)
+            logo (only in NWHLRink)
+
+    All default features include linewidth to ensure they appear. This also may cause them to be larger relative other
+    features than they ought to be. If using larger figure sizes, linewidth on all features can be reduced or set to 0.
 
     Attributes:
+        rotation: float
+            Degree the rink will be rotated. This can be altered for different Axes, but rotation will remain the
+            default when drawing.
+
         x_shift: float
             Amount x-coordinates are to be shifted.
 
             When viewing the rink horizontally, the coordinate of the center of the ice surface from left to right.
                 eg) If using data with a coordinate system that goes from 0 to 200, x_shift should be 100.
 
-            The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
+            The actual coordinates won't be affected. The purpose is to update the coordinates passed in to
             align with the drawing, not to alter the drawing to align with the coordinates.
 
         y_shift: float
@@ -35,7 +62,7 @@ class Rink(BaseRinkPlot):
             When viewing the rink horizontally, the coordinate of the center of the ice surface from bottom to top.
                 eg) If using data with a coordinate system that goes from 0 to 85, y_shift should be 42.5.
 
-            The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
+            The actual coordinates won't be affected. The purpose is to update the coordinates passed in to
             align with the drawing, not to alter the drawing to align with the coordinates.
     """
 
@@ -50,6 +77,7 @@ class Rink(BaseRinkPlot):
         """ Initialize and create the features of the rink.
 
         The features parameters allows for both updating default features and creating new features.
+
         The defaults features are:
             nzone
             ozone
@@ -68,6 +96,8 @@ class Rink(BaseRinkPlot):
             crease_outline
             crossbar
             net
+            crease_notch (in all but Rink)
+            logo (only in NWHLRink)
 
         Updates to existing features and new features both expect a dict with key/value pairs corresponding to
         RinkFeature attributes. Additionally, features expect a key for the feature_class with a value indicating the
@@ -94,12 +124,12 @@ class Rink(BaseRinkPlot):
 
         Some exceptions are:
             Multiple x and y coordinates can be passed as an array-like value. If multiple values are provided,
-            one feature will be created for each combination of coordinates.
-            Likewise, for multiple is_reflected_x and is_reflected_y values.
+            one feature will be created for each combination of coordinates. Likewise, for multiple is_reflected_x
+            and is_reflected_y values.
 
             x and y values for faceoff lines correspond to the nearest faceoff dot. Each coordinate will be
-            included in four L shapes (above and right, below and left, etc) with the shape being altered
-            accordingly. The exact coordinate is determined by the values passed to x_dot_to_lines and y_dot_to_lines.
+            included in four L shapes (above and right, below and left, etc) with the shape being altered accordingly.
+            The exact coordinate is determined by the values passed to x_dot_to_lines and y_dot_to_lines.
 
             clip_xy also accepts a boolean value and defaults to True for all features.
                 When True, the boards will be used as the clip path.
@@ -135,57 +165,57 @@ class Rink(BaseRinkPlot):
             rotation: float (default=0)
                 Degree to rotate the rink.
 
-            x_shift: float; default: 0
+            x_shift: float (default=0)
                 Amount x-coordinates are to be shifted.
 
                 When viewing the rink horizontally, the coordinate of the center of the ice surface from left to right.
                     eg) If using data with a coordinate system that goes from 0 to 200, x_shift should be 100.
 
-                The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
+                The actual coordinates won't be affected. The purpose is to update the coordinates passed in to
                 align with the drawing, not to alter the drawing to align with the coordinates.
 
-            y_shift: float; default: 0
+            y_shift: float (default=0)
                 Amount y-coordinates are to be shifted.
 
                 When viewing the rink horizontally, the coordinate of the center of the ice surface from bottom to top.
                     eg) If using data with a coordinate system that goes from 0 to 85, y_shift should be 42.5.
 
-                The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
+                The actual coordinates won't be affected. The purpose is to update the coordinates passed in to
                 align with the drawing, not to alter the drawing to align with the coordinates.
 
-            alpha: float; default: None
+            alpha: float (optional)
                 The alpha blending value, between 0 (transparent) and 1 (opaque).
 
                 If not None, will be used for all features of the rink that don't override it.
 
-            line_thickness: float; default: 1/6
+            line_thickness: float (default=1/6)
                 Thickness of all the thin lines on the ice (eg the goal line and faceoff circles) if not
                 otherwise updated.
 
-            line_color: color; default: "red"
+            line_color: color (default="red")
                 Color of all the thin lines on the ice (eg the goal line and faceoff circles) if not
                 otherwise updated.
 
                 An example of how to specify colors can be found at the following link:
                     https://matplotlib.org/stable/tutorials/colors/colors.html#sphx-glr-tutorials-colors-colors-py
 
-            line_zorder: float; default: 5
+            line_zorder: float (default=5)
                 The zorder of all thin lines on the ice (eg the goal line and faceoff circles) if not
                 otherwise updated.
 
                 Determines which features are drawn first (lower values will cause features to appear under
                 other features they may overlap).
 
-            x_dot_to_lines: float; default: 2
+            x_dot_to_lines: float (default=2)
                 Length-wise distance between a faceoff dot and the L shapes in the faceoff circle.
 
-            y_dot_to_lines: float; default: 9/12
+            y_dot_to_lines: float (default=9/12)
                 Width-wise distance between a faceoff dot and the L shapes in the faceoff circle.
 
             goal_line_to_dot: float (default=20 except for IIHFRink which is 22)
                 Distance between the goal line and the faceoff dots.
 
-            boards: dict; optional
+            boards: dict (optional)
                 Attributes to update for the boards.
 
                 Also affects the constraint that prevents features from extending outside the boards.
@@ -456,13 +486,6 @@ class Rink(BaseRinkPlot):
 
 
 class NHLRink(Rink):
-    """ Version of Rink class based off a typical NHL ice surface.
-
-    Inherits from Rink.
-
-    Includes an additional crease_notch feature for the little notches inside the crease.
-    """
-
     def _compute_feature_params(
         self,
         features,
@@ -496,15 +519,6 @@ class NHLRink(Rink):
 
 
 class NWHLRink(NHLRink):
-    """ Version of Rink class based off of the NWHL (Herb Brooks) rink in the 2021 playoffs.
-
-    Inherits from NHLRink.
-
-    Includes additional features of logo for the logo at center ice and
-    crease_notch for the little notches inside the crease.  Also, removes
-    the trapezoid and increases the size of the neutral zone.
-    """
-
     def _compute_feature_params(self, features, line_thickness, line_color, line_zorder, x_dot_to_lines,
                                 y_dot_to_lines, goal_line_to_dot):
         half_width = features.get("boards", {}).get("width", 85) / 2
@@ -551,13 +565,6 @@ class NWHLRink(NHLRink):
 
 
 class IIHFRink(Rink):
-    """ Version of Rink class with dimensions based off of IIHF regulations.
-
-    Inherits from Rink.
-
-    Includes an additional feature "crease_notch" for the little notches inside the crease.
-    """
-
     def __init__(
         self,
         rotation=0, x_shift=0, y_shift=0, alpha=None,

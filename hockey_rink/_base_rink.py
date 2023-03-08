@@ -26,7 +26,7 @@ class BaseRink(ABC):
             When viewing the rink horizontally, the coordinate of the center of the ice surface from left to right.
                 eg) If using data with a coordinate system that goes from 0 to 200, x_shift should be 100.
 
-            The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
+            The actual coordinates won't be affected. The purpose is to update the coordinates passed in to
             align with the drawing, not to alter the drawing to align with the coordinates.
 
         y_shift: float
@@ -35,7 +35,7 @@ class BaseRink(ABC):
             When viewing the rink horizontally, the coordinate of the center of the ice surface from bottom to top.
                 eg) If using data with a coordinate system that goes from 0 to 85, y_shift should be 42.5.
 
-            The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
+            The actual coordinates won't be affected. The purpose is to update the coordinates passed in to
             align with the drawing, not to alter the drawing to align with the coordinates.
     """
 
@@ -44,29 +44,11 @@ class BaseRink(ABC):
 
         Parameters:
             rotation: float (default=0)
-                Degree to rotate the rink.
-
             x_shift: float (default=0)
-                Amount x-coordinates are to be shifted.
-
-                When viewing the rink horizontally, the coordinate of the center of the ice surface from left to right.
-                    eg) If using data with a coordinate system that goes from 0 to 200, x_shift should be 100.
-
-                The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
-                align with the drawing, not to alter the drawing to align with the coordinates.
-
             y_shift: float (default=0)
-                Amount y-coordinates are to be shifted.
-
-                When viewing the rink horizontally, the coordinate of the center of the ice surface from bottom to top.
-                    eg) If using data with a coordinate system that goes from 0 to 85, y_shift should be 42.5.
-
-                The actual coordinates won't be affected.  The purpose is to update the coordinates passed in to
-                align with the drawing, not to alter the drawing to align with the coordinates.
 
             alpha: float (default=0)
                 The alpha blending value, between 0 (transparent) and 1 (opaque).
-
                 If not None, will be used for all features of the rink that don't override it.
 
             boards: dict (optional)
@@ -137,7 +119,7 @@ class BaseRink(ABC):
         Doesn't allow for coordinates extending beyond the extent of the boards.
         """
 
-        # if boards are included in the limits, need to include their thickness
+        # If boards are included in the limits, need to include their thickness.
         half_length = self._boards.length / 2 + self._boards.thickness
 
         # If nzone exists, its length may be needed to calculate xlim.
@@ -204,13 +186,13 @@ class BaseRink(ABC):
 
                 ylim = (ylim, half_width)
 
-        # always have the smaller coordinate first
+        # Always have the smaller coordinate first.
         if xlim[0] > xlim[1]:
             xlim = (xlim[1], xlim[0])
         if ylim[0] > ylim[1]:
             ylim = (ylim[1], ylim[0])
 
-        # disallow coordinates from extending beyond the rink
+        # Disallow coordinates from extending beyond the rink.
         xlim = (max(xlim[0], -half_length), min(xlim[1], half_length))
         ylim = (max(ylim[0], -half_width), min(ylim[1], half_width))
 
@@ -233,13 +215,15 @@ class BaseRink(ABC):
         return param
 
     def _rotate_xy(self, x, y, ax=None):
-        """ Rotate x,y-coordinates with rink rotation. """
+        """ Rotate x,y-coordinates based on the Axes object. If no Axes provided, uses the rink's default rotation. """
         rotation = Affine2D().rotate_deg(self.rotation) if ax is None else self._rotations[ax]
         xy = rotation.transform(tuple(zip(x, y)))
         return xy[:, 0], xy[:, 1]
 
     def convert_xy(self, x, y, ax=None):
-        """ Convert x,y-coordinates to the scale used for the rink. """
+        """ Convert x,y-coordinates to the scale used for the rink based on the Axes object.
+        If no Axes provided, uses the rink's default parameters.
+        """
 
         x = self.copy_(x)
         y = self.copy_(y)
@@ -253,50 +237,45 @@ class BaseRink(ABC):
         """ Draw the rink.
 
         Parameters:
-            ax: matplotlib Axes; optional
-                Axes in which to draw the rink.  If not provided, the currently-active Axes is used.
+            ax: matplotlib Axes (optional)
+                Axes in which to draw the rink. If not provided, the currently-active Axes is used.
 
             figsize: (float, float) (optional)
                 Width, height in inches of the matplotlib Figure.
 
-            display_range: {"full", "half", "offense", "defense", "ozone", "dzone"}; default: "full"
-                The portion of the rink to display.  The entire rink is drawn regardless, display_range only
+            display_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (default="full")
+                The portion of the rink to display. The entire rink is drawn regardless, display_range only
                 affects what is shown.
 
                 Only affects x-coordinates and can be used in conjuction with ylim, but will be superceded by
                 xlim if provided.
 
-                If a rotation other than those resulting in the rink being drawn horizontal/vertical, coordinates
-                outside of the display range may be included.
-
                 Features not constrained within the boards (not including the boards) will only be displayed if
                 display_range is "full".
 
                 "full": The entire length of the rink is displayed.
-                "half" or "offense": The offensive half (largest x-coordinates) of the rink is displayed.
-                "defense": The defensive half (smallest x-coordinates) of the rink is displayed.
-                "ozone": The offensive zone (blue line to end boards) of the rink is displayed.
+                "half" or "offense": The offensive half (right side) of the rink is displayed.
+                "defense": The defensive half (left side) of the rink is displayed.
+                "ozone": The offensive zone (right blue line to end boards) of the rink is displayed.
                 "nzone": The neutral zone (blue line to blue line) of the rink is displayed.
-                "dzone": The defensive zone (end boards to blue line) of the rink is displayed.
+                "dzone": The defensive zone (end boards to left blue line) of the rink is displayed.
 
                 If no acceptable values for display_range, xlim, and ylim are provided, will display the full rink.
 
-            xlim: float or (float, float); optional
-                If a single float, the lower bound of the x-coordinates to display.  The upper bound will be the
+            xlim: float or (float, float) (optional)
+                If a single float, the lower bound of the x-coordinates to display. The upper bound will be the
                 end of the boards.
 
                 If a tuple, the lower and upper bounds of the x-coordinates to display.
 
-            ylim: float or (float, float); optional
-                If a single float, the lower bound of the y-coordinates to display.  The upper bound will be the
+            ylim: float or (float, float) (optional)
+                If a single float, the lower bound of the y-coordinates to display. The upper bound will be the
                 end of the boards.
 
                 If a tuple, the lower and upper bounds of the y-coordinates to display.
 
-            rotation: float; optional
+            rotation: float (optional)
                 Degrees to rotate the rink when drawing.
-
-                If used, sets the class attribute.
 
                 0 corresponds to a horizontal rink with largest x and y-coordinates in the top right quadrant.
                 90 will rotate so that the largest coordinates are in the top left quadrant.
@@ -353,10 +332,10 @@ class BaseRink(ABC):
         """ Set the xlim and ylim for the matplotlib Axes.
 
         Parameters:
-            ax: matplotlib Axes; optional
+            ax: matplotlib Axes (optional)
                 Axes in which to set xlim and ylim.
 
-            display_range: {"full", "half", "offense", "defense", "ozone", "dzone"}; default: "full"
+            display_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (default="full")
                 The portion of the rink to display.
 
                 Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
@@ -372,14 +351,14 @@ class BaseRink(ABC):
 
                 If no acceptable values for display_range, xlim, and ylim are provided, will display the full rink.
 
-            xlim: float or (float, float); optional
-                If a single float, the lower bound of the x-coordinates to display.  The upper bound will be the
+            xlim: float or (float, float) (optional)
+                If a single float, the lower bound of the x-coordinates to display. The upper bound will be the
                 end of the boards.
 
                 If a tuple, the lower and upper bounds of the x-coordinates to display.
 
-            ylim: float or (float, float); optional
-                If a single float, the lower bound of the y-coordinates to display.  The upper bound will be the
+            ylim: float or (float, float) (optional)
+                If a single float, the lower bound of the y-coordinates to display. The upper bound will be the
                 end of the boards.
 
                 If a tuple, the lower and upper bounds of the y-coordinates to display.
