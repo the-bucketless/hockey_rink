@@ -767,3 +767,23 @@ class BaseRinkPlot(BaseRink):
 
     """ Alias for contour. """
     contourf = contour
+
+    def clear(self, ax=None, keep=None):
+        """ Remove all plotted items from the rink.
+
+        Parameters:
+            ax: matplotlib Axes (optional)
+                Axes to remove items from.  If not provided, will use the currently active Axes.
+
+            keep: set (optional)
+                Items that don't need to be removed.
+        """
+
+        keep = np.ravel(keep)
+
+        if ax is None:
+            ax = plt.gca()
+
+        for child in ax.get_children():
+            if child not in self._drawn[ax] and child not in keep:
+                child.remove()

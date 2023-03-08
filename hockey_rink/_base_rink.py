@@ -65,6 +65,9 @@ class BaseRink(ABC):
         self._features = {}
         self._feature_xlim, self._feature_ylim = self._boards.get_limits()
 
+        # For tracking which features not to clear after plotting.
+        self._drawn = {}
+
     def _initialize_feature(self, feature_name, params, alpha, linewidth):
         """ Initialize a feature of the rink at each coordinate it's required.
 
@@ -327,6 +330,9 @@ class BaseRink(ABC):
                 min(self._feature_ylim[0], feature_ymin),
                 max(self._feature_ylim[1], feature_ymax)
             )
+
+        # Store children of Axes to allow for clear of plotted objects.
+        self._drawn[ax] = list(ax.get_children())
 
         ax = self.set_display_range(ax, display_range, xlim, ylim)
 
