@@ -6,7 +6,9 @@ Not intended for direct use, only as a parent class.
 
 from functools import wraps
 from hockey_rink._base_rink import BaseRink
+from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
+from matplotlib.transforms import Affine2D
 import numpy as np
 from scipy.stats import binned_statistic_2d
 
@@ -769,7 +771,7 @@ class BaseRinkPlot(BaseRink):
     contourf = contour
 
     def clear(self, ax=None, keep=None):
-        """ Remove all plotted items from the rink.
+        """ Remove all plotted items from the rink. Can only be applied after drawing the rink.
 
         Parameters:
             ax: matplotlib Axes (optional)
@@ -791,3 +793,217 @@ class BaseRinkPlot(BaseRink):
         for child in ax.get_children():
             if child not in keep:
                 child.remove()
+
+    def get_plot_transform(self, ax=None, transform=None):
+        """ Return the matplotlib Transform to apply to plotted elements. """
+
+        if ax is None:
+            ax = plt.gca()
+
+        shift = Affine2D().translate(-self.x_shift, -self.y_shift)
+        rotation = self._rotations.get(ax, Affine2D().rotate_deg(self.rotation))
+
+        if transform is None:
+            transform = Affine2D().identity()
+
+        return shift + rotation + transform + ax.transData
+
+    def get_clip_path(self, ax=None, plot_range=None, plot_xlim=None, plot_ylim=None):
+        """ The Polygon representing the clip path based on the outline of the boards subset to the desired
+        plotting range.
+
+        Arguments:
+            ax: matplotlib Axes
+
+            plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
+                Restricts the portion of the rink that can be plotted to beyond just the boards.
+
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                xlim if provided.
+
+                "full": The entire length of the rink.
+                "half" or "offense": The offensive half (largest x-coordinates) of the rink.
+                "defense": The defensive half (smallest x-coordinates).
+                "ozone": The offensive zone (blue line to end boards).
+                "dzone": The defensive zone (end boards to blue line).
+
+                Note that plot_range only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_xlim: float or (float, float) (optional)
+                The range of x-coordinates to include in the plot.
+                    float: the lower bound of the x-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the x-coordinates.
+
+                Note that plot_xlim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_ylim: float or (float, float) (optional)
+                The range of y-coordinates to include in the plot.
+                    float: the lower bound of the y-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the y-coordinates.
+
+                Note that plot_ylim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+        Returns:
+            plt.Polygon
+        """
+
+        if ax is None:
+            ax = plt.gca()
+
+        transform = self._get_transform(ax)
+        x, y = self._boards.get_xy_for_clip()
+
+        if not (plot_range is plot_xlim is plot_ylim is None):
+            plot_range = plot_range or "full"
+            plot_xlim, plot_ylim = self._get_limits(plot_range, plot_xlim, plot_ylim)
+            x = np.clip(x, *plot_xlim)
+            y = np.clip(y, *plot_ylim)
+
+        return plt.Polygon(
+            tuple(zip(x, y)),
+            transform=transform,
+        )
+
+    def clip_plot(self, plot_features, ax=None, plot_range=None, plot_xlim=None, plot_ylim=None):
+        """ Clip the provided plotted features to the boards subset to the desired plotting region.
+
+        Arguments:
+            plot_features: matplotlib object with a set_clip_path method.
+                Typically, the returned objects from calling a matplotlib plotting method.
+
+            ax: matplotlib Axes
+
+            plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
+                Restricts the portion of the rink that can be plotted to beyond just the boards.
+
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                xlim if provided.
+
+                "full": The entire length of the rink.
+                "half" or "offense": The offensive half (largest x-coordinates) of the rink.
+                "defense": The defensive half (smallest x-coordinates).
+                "ozone": The offensive zone (blue line to end boards).
+                "dzone": The defensive zone (end boards to blue line).
+
+                Note that plot_range only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_xlim: float or (float, float) (optional)
+                The range of x-coordinates to include in the plot.
+                    float: the lower bound of the x-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the x-coordinates.
+
+                Note that plot_xlim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_ylim: float or (float, float) (optional)
+                The range of y-coordinates to include in the plot.
+                    float: the lower bound of the y-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the y-coordinates.
+
+                Note that plot_ylim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+        """
+
+        clip_path = self.get_clip_path(ax, plot_range, plot_xlim, plot_ylim)
+        for plot_feature in np.ravel(plot_features):
+            plot_feature.set_clip_path(clip_path)
+
+    def plot_fn(
+        self,
+        fn,
+        clip_to_boards=True,
+        plot_range=None, plot_xlim=None, plot_ylim=None,
+        skip_draw=False, draw_kw=None,
+        use_rink_coordinates=True,
+        **kwargs
+    ):
+        """ Abstract plotting method. Can be used to call various matplotlib and seaborn plotting functions. Will
+        attempt to apply appropriate transformations to the data based on the rink.
+
+        Note that there may be functions for which this won't work/be appropriate. Also, all parameters passed to the
+        plotting function are keyword only.
+        
+        Arguments:
+            fn: a matplotlib or seaborn plotting function
+
+            clip_to_boards: bool (default=True)
+                Whether or not to clip the plot to stay within the bounds of the boards.
+
+            plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
+                Restricts the portion of the rink that can be plotted to beyond just the boards.
+
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                xlim if provided.
+
+                "full": The entire length of the rink.
+                "half" or "offense": The offensive half (largest x-coordinates) of the rink.
+                "defense": The defensive half (smallest x-coordinates).
+                "ozone": The offensive zone (blue line to end boards).
+                "dzone": The defensive zone (end boards to blue line).
+
+                Note that plot_range only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_xlim: float or (float, float) (optional)
+                The range of x-coordinates to include in the plot.
+                    float: the lower bound of the x-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the x-coordinates.
+
+                Note that plot_xlim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_ylim: float or (float, float) (optional)
+                The range of y-coordinates to include in the plot.
+                    float: the lower bound of the y-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the y-coordinates.
+
+                Note that plot_ylim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            skip_draw: bool (default=False)
+                If the rink has not already been drawn, setting to True will prevent the rink from being drawn.
+
+            draw_kw: dict (optional)
+                If the rink has not already been drawn, keyword arguments to pass to the draw method.
+
+            use_rink_coordinates: bool (default=True)
+                Whether or not the plotted features are using the rink's coordinates. If, eg, adding text relative the
+                size of the figure instead, this should be set to False.
+
+            kwargs: dict
+                All parameters to be passed to the plotting function.
+            
+        Returns:
+            The result from calling fn.
+        """
+
+        # Most plotting will be done with ax.* in which case the Axes object is included in fn.
+        # In cases where it isn't (eg seaborn functions), need to find it in kwargs.
+        try:
+            is_ax_fn = isinstance(fn.__self__, Axes)
+        except AttributeError:
+            is_ax_fn = False
+
+        ax = fn.__self__ if is_ax_fn else kwargs.pop("ax", plt.gca())
+
+        # Draw rink if not already drawn.
+        if not (ax in self._drawn or skip_draw):
+            draw_kw = draw_kw or {}
+            self.draw(ax=ax, **draw_kw)
+
+        # Only use rink transform if plotting based on rink coordinates.
+        if use_rink_coordinates:
+            kwargs["transform"] = self.get_plot_transform(ax, kwargs.get("transform"))
+
+        # Create boards constraint.
+        if clip_to_boards and "clip_path" not in kwargs:
+            kwargs["clip_path"] = self.get_clip_path(ax, plot_range, plot_xlim, plot_ylim)
+
+        try:
+            return fn(ax=ax, **kwargs)
+        except (AttributeError, TypeError):
+            return fn(**kwargs)
