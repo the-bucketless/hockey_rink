@@ -246,43 +246,6 @@ class BaseRinkPlot(BaseRink):
         self._constrain_plot(collection, ax, transform)
 
     @_validate_plot
-    def plot(self, x, y, *, is_constrained=True, update_display_range=False, zorder=20, ax=None, **kwargs):
-        """ Wrapper for matplotlib plot function.
-
-        Will plot to areas out of view when full ice surface is not displayed.
-
-        All parameters other than x and y require keywords.
-            ie) plot(x, y, False) won't work, needs to be plot(x, y, is_constrained=False)
-
-        Parameters:
-            x: array_like
-
-            y: array_like
-
-            is_constrained: bool; default: True
-                Indicates whether or not the plot is constrained to remain inside the boards.
-
-            update_display_range: bool; default: False
-                Indicates whether or not to update the display range when coordinates are outside
-                the given range. Only used when is_constrained is False.
-
-            zorder: float; default: 20
-                Determines which rink features the plot will draw over.
-
-            ax: matplotlib Axes; optional
-                Axes in which to draw the plot.  If not provided, will use the currently active Axes.
-
-            **kwargs: Any other matplotlib plot properties; optional
-
-        Returns:
-            list of matplotlib Line2D
-        """
-
-        img = ax.plot(x, y, zorder=zorder, **kwargs)
-        self._bound_rink(x, y, img, ax, kwargs["transform"], is_constrained, update_display_range)
-        return img
-
-    @_validate_plot
     def arrow(self, x1, y1, x2, y2, *, is_constrained=True, update_display_range=False,
               length_includes_head=True, head_width=1,
               zorder=20, ax=None, **kwargs):
@@ -878,6 +841,40 @@ class BaseRinkPlot(BaseRink):
         ax.set_xlim(*xlim)
         ax.set_ylim(*ylim)
 
+    def _process_plot(
+        self,
+        ax,
+        clip_to_boards=True, update_display_range=False,
+        plot_range=None, plot_xlim=None, plot_ylim=None,
+        skip_draw=False, draw_kw=None,
+        use_rink_coordinates=True,
+        zorder=20,
+        **kwargs,
+    ):
+        """ Perform preprocessing steps before plotting. """
+
+        # Draw rink if not already drawn.
+        if not (ax in self._drawn or skip_draw):
+            draw_kw = draw_kw or {}
+            self.draw(ax=ax, **draw_kw)
+
+        # Create boards constraint.
+        if clip_to_boards and "clip_path" not in kwargs:
+            kwargs["clip_path"] = self.get_clip_path(ax, plot_range, plot_xlim, plot_ylim)
+
+        # Only use rink transform if plotting based on rink coordinates.
+        if use_rink_coordinates:
+            if update_display_range and not clip_to_boards:
+                self._update_display_range(ax, **kwargs)
+
+            # Update transform after display range to access original transform in _update_display_range.
+            kwargs["transform"] = self.get_plot_transform(ax, kwargs.get("transform"))
+
+        # Update zorder.
+        kwargs["zorder"] = kwargs.get("zorder", zorder)
+
+        return kwargs
+
     def plot_fn(
         self,
         fn,
@@ -888,8 +885,8 @@ class BaseRinkPlot(BaseRink):
         zorder=20,
         **kwargs
     ):
-        """ Abstract plotting method. Can be used to call various matplotlib and seaborn plotting functions. Will
-        attempt to apply appropriate transformations to the data based on the rink.
+        """ Wrapper method to be used to call various matplotlib and seaborn plotting functions. Will attempt to apply
+        appropriate transformations to the data based on the rink.
 
         Note that there may be functions for which this won't work/be appropriate. Also, all parameters passed to the
         plotting function are keyword only.
@@ -952,8 +949,7 @@ class BaseRinkPlot(BaseRink):
             zorder: float (default=20)
                 Determines which rink features the plot will draw over.
 
-            kwargs: dict
-                All parameters to be passed to the plotting function.
+            kwargs: All parameters to be passed to the plotting function.
 
         Returns:
             The result from calling fn.
@@ -968,25 +964,15 @@ class BaseRinkPlot(BaseRink):
 
         ax = fn.__self__ if is_ax_fn else kwargs.pop("ax", plt.gca())
 
-        # Draw rink if not already drawn.
-        if not (ax in self._drawn or skip_draw):
-            draw_kw = draw_kw or {}
-            self.draw(ax=ax, **draw_kw)
-
-        # Create boards constraint.
-        if clip_to_boards and "clip_path" not in kwargs:
-            kwargs["clip_path"] = self.get_clip_path(ax, plot_range, plot_xlim, plot_ylim)
-
-        # Only use rink transform if plotting based on rink coordinates.
-        if use_rink_coordinates:
-            if update_display_range and not clip_to_boards:
-                self._update_display_range(ax, **kwargs)
-
-            # Update transform after display range to access original transform in _update_display_range.
-            kwargs["transform"] = self.get_plot_transform(ax, kwargs.get("transform"))
-
-        # Update zorder.
-        kwargs["zorder"] = kwargs.get("zorder", zorder)
+        kwargs = self._process_plot(
+            ax,
+            clip_to_boards, update_display_range,
+            plot_range, plot_xlim, plot_ylim,
+            skip_draw, draw_kw,
+            use_rink_coordinates,
+            zorder,
+            **kwargs,
+        )
 
         try:
             return fn(ax=ax, **kwargs)
@@ -1082,3 +1068,106 @@ class BaseRinkPlot(BaseRink):
             x=x, y=y,
             **kwargs,
         )
+
+    def plot(
+        self,
+        x, y, fmt=None,
+        ax=None,
+        clip_to_boards=True, update_display_range=False,
+        plot_range=None, plot_xlim=None, plot_ylim=None,
+        skip_draw=False, draw_kw=None,
+        use_rink_coordinates=True,
+        **kwargs
+    ):
+        """ Wrapper for matplotlib plot function.
+
+        Parameters:
+            x: array-like
+            y: array-like
+
+            fmt: str (optional)
+                A format string. See https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html for details.
+
+            ax: matplotlib Axes (optional)
+                If not provided, will use the currently active Axes.
+
+            clip_to_boards: bool (default=True)
+                Whether or not to clip the plot to stay within the bounds of the boards.
+
+            update_display_range: bool (default=False)
+                Whether or not to update the display range for plotted objects outside of the rink.
+
+                The display range will be updated to the extremity of the passed in coordinates. If, for example, scatter
+                points are outside the rink, half of the outermost point may be cut off.
+
+                Adding Text will automatically update the display range, regardless of what is set here.
+
+            plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
+                Restricts the portion of the rink that can be plotted to beyond just the boards.
+
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                xlim if provided.
+
+                "full": The entire length of the rink.
+                "half" or "offense": The offensive half (largest x-coordinates) of the rink.
+                "defense": The defensive half (smallest x-coordinates).
+                "ozone": The offensive zone (blue line to end boards).
+                "dzone": The defensive zone (end boards to blue line).
+
+                Note that plot_range only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_xlim: float or (float, float) (optional)
+                The range of x-coordinates to include in the plot.
+                    float: the lower bound of the x-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the x-coordinates.
+
+                Note that plot_xlim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_ylim: float or (float, float) (optional)
+                The range of y-coordinates to include in the plot.
+                    float: the lower bound of the y-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the y-coordinates.
+
+                Note that plot_ylim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            skip_draw: bool (default=False)
+                If the rink has not already been drawn, setting to True will prevent the rink from being drawn.
+
+            draw_kw: dict (optional)
+                If the rink has not already been drawn, keyword arguments to pass to the draw method.
+
+            use_rink_coordinates: bool (default=True)
+                Whether or not the plotted features are using the rink's coordinates. If, eg, adding text relative the
+                size of the figure instead, this should be set to False.
+
+            kwargs: Any other matplotlib scatter properties. (optional)
+
+        Returns:
+            list of matplotlib Line2D
+        """
+
+        if ax is None:
+            ax = plt.gca()
+
+        # matplotlib's .plot does not allow for keyword arguments for coordinates.
+        kwargs = self._process_plot(
+            ax,
+            clip_to_boards, update_display_range,
+            plot_range, plot_xlim, plot_ylim,
+            skip_draw, draw_kw,
+            use_rink_coordinates,
+            x=x, y=y,
+            **kwargs,
+        )
+
+        x = kwargs.pop("x")
+        y = kwargs.pop("y")
+
+        # Can't pass fmt as None.
+        if fmt is None:
+            return ax.plot(x, y, **kwargs)
+        else:
+            return ax.plot(x, y, fmt, **kwargs)
