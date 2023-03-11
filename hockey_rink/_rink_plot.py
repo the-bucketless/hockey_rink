@@ -4,7 +4,6 @@ Not intended for direct use, only as a parent class.
 """
 
 
-from functools import wraps
 from hockey_rink._base_rink import BaseRink
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
@@ -90,126 +89,6 @@ class BaseRinkPlot(BaseRink):
         stat = stat.T
 
         return stat, x_edge, y_edge
-
-    def hexbin(self, x, y, *, values=None, is_constrained=True, update_display_range=False, symmetrize=False,
-               plot_range=None, plot_xlim=None, plot_ylim=None,
-               gridsize=None, binsize=1, zorder=2, clip_on=True, ax=None, **kwargs):
-        """ Wrapper for matplotlib hexbin function.
-
-        Will plot to areas out of view when full ice surface is not displayed.
-        Use plot_range, plot_xlim, and plot_ylim to restrict to the area within view.
-
-        All parameters other than x and y require keywords.
-            ie) hexbin(x, y, values) won't work, needs to be hexbin(x, y, values=values)
-
-        Parameters:
-            x: array_like
-
-            y: array_like
-
-            values: array_like; optional
-                If None, values of 1 will be assigned to each x,y-coordinate provided.
-
-            is_constrained: bool; default: True
-                Indicates whether or not the plot is constrained to remain inside the boards.
-
-                If plot ranges are used, also constrains coordinates included to remain inside the boards.
-
-            update_display_range: bool; default: False
-                Indicates whether or not to update the display range when coordinates are outside
-                the given range. Only used when is_constrained is False.
-
-            symmetrize: bool; default: False
-                Indicates whether or not to reflect the coordinates and values across the y-axis.
-
-            plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"}; optional
-                Restricts the portion of the rink that can be plotted to.  Does so by removing values outside of
-                the given range.
-
-                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
-                xlim if provided.
-
-                "full": The entire length of the rink is displayed.
-                "half" or "offense": The offensive half (largest x-coordinates) of the rink is displayed.
-                "defense": The defensive half (smallest x-coordinates) of the rink is displayed.
-                "ozone": The offensive zone (blue line to end boards) of the rink is displayed.
-                "dzone": The defensive zone (end boards to blue line) of the rink is displayed.
-
-                If no values are given for plot_range, plot_xlim, or plot_ylim, will use all coordinates provided.
-
-            plot_xlim: float or (float, float); optional
-                The range of x-coordinates to include in the plot.
-                    float: the lower bound of the x-coordinates.  The upper bound will be the boards.
-                    (float, float): The lower and upper bounds of the x-coordinates.
-
-                If no values are given for plot_range, plot_xlim, or plot_ylim, will use all coordinates provided.
-
-            plot_ylim: float or (float, float); optional
-                The range of y-coordinates to include in the plot.
-                    float: the lower bound of the y-coordinates.  The upper bound will be the boards.
-                    (float, float): The lower and upper bounds of the y-coordinates.
-
-                If no values are given for plot_range, plot_xlim, or plot_ylim, will use all coordinates provided.
-
-            gridsize: int or (int, int); optional
-                The grid specification:
-                    int: the number of hexagons in the x-direction.  The number of hexagons in the y-direction is
-                        chosen such that hexagons are approximately regular.
-                    (int, int): the number of hexagons in both directions.
-
-            binsize: float or (float, float); default: 1
-                The size of the bins for a given portion of the rink.
-                    float: the size of the bins for the two dimensions.
-                    (float, float): the size of the bins in each dimension.
-
-            zorder: float; default: 2
-                Determines which rink features the plot will draw over.
-
-            clip_on: bool; default: True
-                Whether the artist uses clipping.
-
-                Other plotting features will automatically be set to the same value as is_constrained, but doing
-                so can lead to odd results with hexbin.
-
-            ax: matplotlib Axes; optional
-                Axes in which to draw the plot.  If not provided, will use the currently active Axes.
-
-            **kwargs: Any other matplotlib hexbin properties; optional
-
-        Returns:
-            matplotlib PolyCollection
-        """
-
-        # setting clip_on to False can lead to odd results
-        kwargs["clip_on"] = kwargs.get("clip_on", True)
-
-        try:
-            iter(binsize)
-        except:
-            binsize = (binsize, binsize)
-
-        default_gridsize = (int((plot_xlim[1] - plot_xlim[0]) / binsize[0]),
-                            int((plot_ylim[1] - plot_ylim[0]) / binsize[1]))
-        gridsize = gridsize or default_gridsize
-
-        # matplotlib hexbin uses count when C is None, but uses np.mean when values are included
-        # since None is replaced in values with an array of ones, the reduce function needs to be
-        # changed to allow for the same default behaviour
-        if np.all(values == 1):
-            kwargs["reduce_C_function"] = kwargs.get("reduce_C_function", np.sum)
-
-        # delay application of transform until after drawing hexbin
-        # an update to matplotlib doesn't rotate the position of the hexagons
-        transform = kwargs.pop("transform")
-        hexagon_transform = transform - ax.transData
-        img = ax.hexbin(x, y, C=values, gridsize=gridsize, zorder=zorder, **kwargs)
-        hexagon = img.get_paths()[0]
-        hexagon.vertices = hexagon_transform.transform(hexagon.vertices)
-        img.set_offsets(hexagon_transform.transform(img.get_offsets()))
-
-        self._bound_rink(x, y, img, ax, transform, is_constrained, update_display_range)
-
-        return img
 
     def heatmap(self, x, y, *, values=None, is_constrained=True, update_display_range=False, symmetrize=False,
                 plot_range=None, plot_xlim=None, plot_ylim=None,
@@ -1082,3 +961,109 @@ class BaseRinkPlot(BaseRink):
             )
             for x_, y_, dx_, dy_ in zip(x, y, dx, dy)
         ]
+
+    def hexbin(
+        self,
+        x, y,
+        ax=None,
+        clip_to_boards=True, update_display_range=False,
+        plot_range=None, plot_xlim=None, plot_ylim=None,
+        skip_draw=False, draw_kw=None,
+        use_rink_coordinates=True,
+        **kwargs
+    ):
+        """ Wrapper for matplotlib hexbin function.
+
+        Parameters:
+            x: array-like
+            y: array-like
+
+            ax: matplotlib Axes (optional)
+                If not provided, will use the currently active Axes.
+
+            clip_to_boards: bool (default=True)
+                Whether or not to clip the plot to stay within the bounds of the boards.
+
+            update_display_range: bool (default=False)
+                Whether or not to update the display range for plotted objects outside of the rink.
+
+                The display range will be updated to the extremity of the passed in coordinates. If, for example, hexagons
+                are outside the rink, half of the outermost hexagon may be cut off.
+
+                Adding Text will automatically update the display range, regardless of what is set here.
+
+            plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
+                Restricts the portion of the rink that can be plotted to beyond just the boards.
+
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                xlim if provided.
+
+                "full": The entire length of the rink.
+                "half" or "offense": The offensive half (largest x-coordinates) of the rink.
+                "defense": The defensive half (smallest x-coordinates).
+                "ozone": The offensive zone (blue line to end boards).
+                "dzone": The defensive zone (end boards to blue line).
+
+                Note that plot_range only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_xlim: float or (float, float) (optional)
+                The range of x-coordinates to include in the plot.
+                    float: the lower bound of the x-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the x-coordinates.
+
+                Note that plot_xlim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_ylim: float or (float, float) (optional)
+                The range of y-coordinates to include in the plot.
+                    float: the lower bound of the y-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the y-coordinates.
+
+                Note that plot_ylim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            skip_draw: bool (default=False)
+                If the rink has not already been drawn, setting to True will prevent the rink from being drawn.
+
+            draw_kw: dict (optional)
+                If the rink has not already been drawn, keyword arguments to pass to the draw method.
+
+            use_rink_coordinates: bool (default=True)
+                Whether or not the plotted features are using the rink's coordinates. If, eg, adding text relative the
+                size of the figure instead, this should be set to False.
+
+            kwargs: Any other matplotlib scatter properties. (optional)
+
+        Returns:
+            matplotlib PolyCollection
+        """
+
+        if ax is None:
+            ax = plt.gca()
+
+        transform = self.get_plot_transform(ax, kwargs.get("transform"), False)
+        rotation = self._rotations.get(ax, Affine2D().rotate_deg(self.rotation))
+
+        # Newer versions of hexbin don't rotate the position of the hexagons.
+        # Need to delay application of transform until after drawing hexbin.
+        kwargs = self._process_plot(
+            ax,
+            clip_to_boards, update_display_range,
+            plot_range, plot_xlim, plot_ylim,
+            skip_draw, draw_kw,
+            use_rink_coordinates,
+            x=x, y=y,
+            **kwargs,
+        )
+
+        kwargs.pop("transform")
+
+        img = ax.hexbin(**kwargs)
+
+        # Rotate vertices and transform offsets.
+        hexagon = img.get_paths()[0]
+        hexagon.vertices = rotation.transform(hexagon.vertices)
+        img.set_offsets(transform.transform(img.get_offsets()))
+
+        return img
