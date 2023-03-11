@@ -830,7 +830,7 @@ class BaseRinkPlot(BaseRink):
         transform = self.get_plot_transform(ax, kwargs.get("transform"), False)
 
         for x_kw, y_kw in zip(sorted(x_kws), sorted(y_kws)):
-            xy = transform.transform(tuple(zip(kwargs[x_kw], kwargs[y_kw])))
+            xy = transform.transform(tuple(zip(np.ravel(kwargs[x_kw]), np.ravel(kwargs[y_kw]))))
             x, y = zip(*xy)
 
             xlim = [min(xlim[0], np.min(x)), max(xlim[1], np.max(x))]
