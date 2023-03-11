@@ -17,139 +17,6 @@ from scipy.stats import binned_statistic_2d
 class BaseRinkPlot(BaseRink):
     """ Class extending BaseRink to include plotting methods. """
 
-    def _validate_values(plot_function):
-        """ Decorator to restrict x, y, and values to intended coordinates.
-
-        Expects x and y to have already been converted for plotting.
-        """
-
-        @wraps(plot_function)
-        def wrapper(self, x, y, *, values=None,
-                    plot_range=None, plot_xlim=None, plot_ylim=None, **kwargs):
-
-            C = kwargs.pop("C", None)
-            values = C if values is None else values
-
-            values = self.copy_(values)
-
-            # x and y will already have been symmetrized
-            if values is None:
-                values = np.ones_like(x)
-            else:
-                values = np.ravel(values)
-
-                if kwargs.get("symmetrize", False):
-                    values = np.concatenate((values, values))
-
-            if len(x) != len(y) or len(x) != len(values):
-                raise Exception("x, y, and values must have equal length.")
-
-            mask = False
-
-            if plot_range is None and plot_xlim is None and plot_ylim is None:
-                plot_xlim, plot_ylim = self._get_limits("full")
-            else:
-                plot_xlim, plot_ylim = self._get_limits(plot_range, plot_xlim, plot_ylim)
-
-                mask = ((x < plot_xlim[0]) | (x > plot_xlim[1])
-                        | (y < plot_ylim[0]) | (y > plot_ylim[1]))
-
-            is_constrained = kwargs.get("is_constrained", True)
-            if is_constrained:
-                values = self._outside_rink_to_nan(x, y, values)
-
-            mask = mask | np.isnan(x) | np.isnan(y) | np.isnan(values)
-
-            x = x[~mask]
-            y = y[~mask]
-            values = values[~mask]
-
-            if not is_constrained:
-                plot_xlim = [min([*plot_xlim, *x]), max([*plot_xlim, *x])]
-                plot_ylim = [min([*plot_ylim, *y]), max([*plot_ylim, *y])]
-
-            return plot_function(self, x, y, values=values,
-                                 plot_range=plot_range,
-                                 plot_xlim=plot_xlim, plot_ylim=plot_ylim,
-                                 **kwargs)
-
-        return wrapper
-
-    def _validate_plot(plot_function):
-        """ Decorator to ensure all plotting parameters are of the correct form. """
-
-        @wraps(plot_function)
-        def wrapper(self, *args, **kwargs):
-            if "ax" not in kwargs:
-                kwargs["ax"] = plt.gca()
-
-            args = list(args)
-            for coord in ("x", "y", "x1", "y1", "x2", "y2"):
-                if coord in kwargs:
-                    args.append(kwargs.pop(coord))
-
-            for i in range(len(args)):
-                args[i] = self.copy_(args[i])
-                args[i] = np.ravel(args[i])
-
-                is_y = i % 2
-
-                if kwargs.get("symmetrize", False):
-                    args[i] = np.concatenate((args[i], args[i] * (-1 if is_y else 1)))
-
-                args[i] = args[i] - (self.y_shift if is_y else self.x_shift)
-
-            kwargs["transform"] = self._get_transform(kwargs["ax"])
-
-            # avoid cutting off markers when plotting outside of rink
-            kwargs["clip_on"] = kwargs.get("clip_on", kwargs.get("is_constrained", True))
-
-            args = tuple(args)
-
-            return plot_function(self, *args, **kwargs)
-
-        return wrapper
-
-    def _constrain_plot(self, plot_features, ax, transform):
-        """ Constrain the features of a plot to only display inside the boards. """
-
-        try:
-            iter(plot_features)
-        except TypeError:
-            plot_features = [plot_features]
-
-        boards_x, boards_y = self._boards.get_xy_for_clip()
-        constraint = plt.Polygon(tuple(zip(boards_x, boards_y)), transform=transform)
-
-        for plot_feature in plot_features:
-            plot_feature.set_clip_path(constraint)
-
-    def _outside_rink_to_nan(self, x, y, values):
-        """ Set values of coordinates outside the boundaries of the rink to nan. """
-
-        x = np.abs(x).astype("float32")
-        y = np.abs(y).astype("float32")
-
-        values = values.astype("float32")
-
-        center_x = self._boards.length / 2 - self._boards.radius
-        center_y = self._boards.width / 2 - self._boards.radius
-
-        mask = ((x > center_x) & (y > center_y)
-                & ((center_x - x) ** 2 + (center_y - y) ** 2 > self._boards.radius ** 2))
-        values[mask] = np.nan
-
-        return values
-
-    def _bound_rink(self, x, y, plot_features, ax, transform, is_constrained, update_display_range):
-        """ Update board contraints and limits of plot. """
-
-        if is_constrained:
-            self._constrain_plot(plot_features, ax, transform)
-        else:
-            if update_display_range:
-                self._update_display_range(x, y, ax)
-
     @staticmethod
     def binned_stat_2d(x, y, values, statistic="sum", xlim=None, ylim=None, binsize=1, bins=None):
         """ Use scipy to compute a bi-dimensional binned statistic.
@@ -224,29 +91,6 @@ class BaseRinkPlot(BaseRink):
 
         return stat, x_edge, y_edge
 
-    def constrain_plot(self, ax=None, collection=None):
-        """ Constrain a collection object to only display inside the boards.
-
-        Parameters:
-            ax: matplotlib Axes; optional
-                Axes in which to draw the plot.  If not provided, will use the currently active Axes.
-
-            collection: matplotlib collection or iterable of matplotlib collections; default: None
-                The collection to be constrained.
-
-                If None, will constrain all collections found on the Axes.
-        """
-
-        ax = plt.gca() if ax is None else ax
-        transform = self._get_transform(ax)
-
-        if collection is None:
-            collection = ax.collections
-
-        self._constrain_plot(collection, ax, transform)
-
-    @_validate_plot
-    @_validate_values
     def hexbin(self, x, y, *, values=None, is_constrained=True, update_display_range=False, symmetrize=False,
                plot_range=None, plot_xlim=None, plot_ylim=None,
                gridsize=None, binsize=1, zorder=2, clip_on=True, ax=None, **kwargs):
@@ -367,8 +211,6 @@ class BaseRinkPlot(BaseRink):
 
         return img
 
-    @_validate_plot
-    @_validate_values
     def heatmap(self, x, y, *, values=None, is_constrained=True, update_display_range=False, symmetrize=False,
                 plot_range=None, plot_xlim=None, plot_ylim=None,
                 statistic="sum", binsize=1, bins=None,
@@ -476,8 +318,6 @@ class BaseRinkPlot(BaseRink):
 
         return img
 
-    @_validate_plot
-    @_validate_values
     def contour(self, x, y, *, values=None, fill=True,
                 is_constrained=True, update_display_range=False, symmetrize=False,
                 plot_range=None, plot_xlim=None, plot_ylim=None,
@@ -1213,7 +1053,7 @@ class BaseRinkPlot(BaseRink):
         data = kwargs.pop("data", None)
 
         x, y, dx, dy, x2, y2 = [
-            data[var].values if isinstance(var, str) else var
+            data[var] if isinstance(var, str) else var
             for var in (x, y, dx, dy, x2, y2)
         ]
 
