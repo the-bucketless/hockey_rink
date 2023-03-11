@@ -283,47 +283,6 @@ class BaseRinkPlot(BaseRink):
         return img
 
     @_validate_plot
-    def scatter(self, x, y, *, is_constrained=True, update_display_range=False, symmetrize=False,
-                zorder=20, ax=None, **kwargs):
-        """ Wrapper for matplotlib scatter function.
-
-        Will plot to areas out of view when full ice surface is not displayed.
-
-        All parameters other than x and y require keywords.
-            ie) scatter(x, y, False) won't work, needs to be scatter(x, y, is_constrained=False)
-
-        Parameters:
-            x: array_like
-
-            y: array_like
-
-            is_constrained: bool; default: True
-                Indicates whether or not the plot is constrained to remain inside the boards.
-
-            update_display_range: bool; default: False
-                Indicates whether or not to update the display range when coordinates are outside
-                the given range. Only used when is_constrained is False.
-
-            symmetrize: bool; default: False
-                Indicates whether or not to reflect the coordinates across the y-axis.
-
-            zorder: float; default: 20
-                Determines which rink features the plot will draw over.
-
-            ax: matplotlib Axes; optional
-                Axes in which to draw the plot.  If not provided, will use the currently active Axes.
-
-            **kwargs: Any other matplotlib scatter properties; optional
-
-        Returns:
-            matplotlib PathCollection
-        """
-
-        img = ax.scatter(x, y, zorder=zorder, **kwargs)
-        self._bound_rink(x, y, img, ax, kwargs["transform"], is_constrained, update_display_range)
-        return img
-
-    @_validate_plot
     def arrow(self, x1, y1, x2, y2, *, is_constrained=True, update_display_range=False,
               length_includes_head=True, head_width=1,
               zorder=20, ax=None, **kwargs):
@@ -1033,3 +992,93 @@ class BaseRinkPlot(BaseRink):
             return fn(ax=ax, **kwargs)
         except (AttributeError, TypeError):
             return fn(**kwargs)
+
+    def scatter(
+        self,
+        x, y,
+        ax=None,
+        clip_to_boards=True, update_display_range=False,
+        plot_range=None, plot_xlim=None, plot_ylim=None,
+        skip_draw=False, draw_kw=None,
+        use_rink_coordinates=True,
+        **kwargs
+    ):
+        """ Wrapper for matplotlib scatter function.
+
+        Parameters:
+            x: array-like
+            y: array-like
+
+            ax: matplotlib Axes (optional)
+                If not provided, will use the currently active Axes.
+
+            clip_to_boards: bool (default=True)
+                Whether or not to clip the plot to stay within the bounds of the boards.
+
+            update_display_range: bool (default=False)
+                Whether or not to update the display range for plotted objects outside of the rink.
+
+                The display range will be updated to the extremity of the passed in coordinates. If, for example, scatter
+                points are outside the rink, half of the outermost point may be cut off.
+
+                Adding Text will automatically update the display range, regardless of what is set here.
+
+            plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
+                Restricts the portion of the rink that can be plotted to beyond just the boards.
+
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                xlim if provided.
+
+                "full": The entire length of the rink.
+                "half" or "offense": The offensive half (largest x-coordinates) of the rink.
+                "defense": The defensive half (smallest x-coordinates).
+                "ozone": The offensive zone (blue line to end boards).
+                "dzone": The defensive zone (end boards to blue line).
+
+                Note that plot_range only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_xlim: float or (float, float) (optional)
+                The range of x-coordinates to include in the plot.
+                    float: the lower bound of the x-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the x-coordinates.
+
+                Note that plot_xlim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_ylim: float or (float, float) (optional)
+                The range of y-coordinates to include in the plot.
+                    float: the lower bound of the y-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the y-coordinates.
+
+                Note that plot_ylim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            skip_draw: bool (default=False)
+                If the rink has not already been drawn, setting to True will prevent the rink from being drawn.
+
+            draw_kw: dict (optional)
+                If the rink has not already been drawn, keyword arguments to pass to the draw method.
+
+            use_rink_coordinates: bool (default=True)
+                Whether or not the plotted features are using the rink's coordinates. If, eg, adding text relative the
+                size of the figure instead, this should be set to False.
+
+            kwargs: Any other matplotlib scatter properties. (optional)
+
+        Returns:
+            matplotlib PathCollection
+        """
+
+        if ax is None:
+            ax = plt.gca()
+
+        return self.plot_fn(
+            ax.scatter,
+            clip_to_boards, update_display_range,
+            plot_range, plot_xlim, plot_ylim,
+            skip_draw, draw_kw,
+            use_rink_coordinates,
+            x=x, y=y,
+            **kwargs,
+        )
