@@ -926,6 +926,7 @@ class BaseRinkPlot(BaseRink):
         plot_range=None, plot_xlim=None, plot_ylim=None,
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
+        zorder=20,
         **kwargs
     ):
         """ Abstract plotting method. Can be used to call various matplotlib and seaborn plotting functions. Will
@@ -989,6 +990,9 @@ class BaseRinkPlot(BaseRink):
                 Whether or not the plotted features are using the rink's coordinates. If, eg, adding text relative the
                 size of the figure instead, this should be set to False.
 
+            zorder: float (default=20)
+                Determines which rink features the plot will draw over.
+
             kwargs: dict
                 All parameters to be passed to the plotting function.
 
@@ -1021,6 +1025,9 @@ class BaseRinkPlot(BaseRink):
 
             # Update transform after display range to access original transform in _update_display_range.
             kwargs["transform"] = self.get_plot_transform(ax, kwargs.get("transform"))
+
+        # Update zorder.
+        kwargs["zorder"] = kwargs.get("zorder", zorder)
 
         try:
             return fn(ax=ax, **kwargs)
