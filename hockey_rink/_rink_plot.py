@@ -126,7 +126,7 @@ class BaseRinkPlot(BaseRink):
                 Restricts the portion of the rink that can be plotted to.  Does so by removing values outside of
                 the given range.
 
-                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superseded by
                 xlim if provided.
 
                 "full": The entire length of the rink is displayed.
@@ -237,7 +237,7 @@ class BaseRinkPlot(BaseRink):
                 Restricts the portion of the rink that can be plotted to.  Does so by removing values outside of
                 the given range.
 
-                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superseded by
                 xlim if provided.
 
                 "full": The entire length of the rink is displayed.
@@ -377,7 +377,7 @@ class BaseRinkPlot(BaseRink):
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
                 Restricts the portion of the rink that can be plotted to beyond just the boards.
 
-                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superseded by
                 xlim if provided.
 
                 "full": The entire length of the rink.
@@ -438,7 +438,7 @@ class BaseRinkPlot(BaseRink):
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
                 Restricts the portion of the rink that can be plotted to beyond just the boards.
 
-                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superseded by
                 xlim if provided.
 
                 "full": The entire length of the rink.
@@ -537,6 +537,7 @@ class BaseRinkPlot(BaseRink):
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
         zorder=20,
+        position_args=None,
         **kwargs
     ):
         """ Wrapper method to be used to call various matplotlib and seaborn plotting functions. Will attempt to apply
@@ -554,15 +555,15 @@ class BaseRinkPlot(BaseRink):
             update_display_range: bool (default=False)
                 Whether or not to update the display range for plotted objects outside of the rink.
 
-                The display range will be updated to the extremity of the passed in coordinates. If, for example, scatter
-                points are outside the rink, half of the outermost point may be cut off.
+                The display range will be updated to the extremity of the passed in coordinates. If, for example,
+                scatter points are outside the rink, half of the outermost point may be cut off.
 
                 Adding Text will automatically update the display range, regardless of what is set here.
 
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
                 Restricts the portion of the rink that can be plotted to beyond just the boards.
 
-                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superseded by
                 xlim if provided.
 
                 "full": The entire length of the rink.
@@ -603,6 +604,10 @@ class BaseRinkPlot(BaseRink):
             zorder: float (default=20)
                 Determines which rink features the plot will draw over.
 
+            position_args: list (optional)
+                Parameters that can't be passed to matplotlib functions as keywords.
+                For example, ax.plot(x=x, y=y) will result in an error. To avoid this, set position_args to ["x", "y"].
+
             kwargs: All parameters to be passed to the plotting function.
 
         Returns:
@@ -628,10 +633,13 @@ class BaseRinkPlot(BaseRink):
             **kwargs,
         )
 
+        position_args = position_args or []
+        args = [kwargs.pop(arg) for arg in position_args]
+
         try:
-            return fn(ax=ax, **kwargs)
+            return fn(*args, **kwargs, ax=ax)
         except (AttributeError, TypeError):
-            return fn(**kwargs)
+            return fn(*args, **kwargs)
 
     def scatter(
         self,
@@ -658,15 +666,15 @@ class BaseRinkPlot(BaseRink):
             update_display_range: bool (default=False)
                 Whether or not to update the display range for plotted objects outside of the rink.
 
-                The display range will be updated to the extremity of the passed in coordinates. If, for example, scatter
-                points are outside the rink, half of the outermost point may be cut off.
+                The display range will be updated to the extremity of the passed in coordinates. If, for example,
+                scatter points are outside the rink, half of the outermost point may be cut off.
 
                 Adding Text will automatically update the display range, regardless of what is set here.
 
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
                 Restricts the portion of the rink that can be plotted to beyond just the boards.
 
-                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superseded by
                 xlim if provided.
 
                 "full": The entire length of the rink.
@@ -751,15 +759,15 @@ class BaseRinkPlot(BaseRink):
             update_display_range: bool (default=False)
                 Whether or not to update the display range for plotted objects outside of the rink.
 
-                The display range will be updated to the extremity of the passed in coordinates. If, for example, scatter
-                points are outside the rink, half of the outermost point may be cut off.
+                The display range will be updated to the extremity of the passed in coordinates. If, for example,
+                scatter points are outside the rink, half of the outermost point may be cut off.
 
                 Adding Text will automatically update the display range, regardless of what is set here.
 
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
                 Restricts the portion of the rink that can be plotted to beyond just the boards.
 
-                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superseded by
                 xlim if provided.
 
                 "full": The entire length of the rink.
@@ -806,25 +814,21 @@ class BaseRinkPlot(BaseRink):
         if ax is None:
             ax = plt.gca()
 
-        # matplotlib's .plot does not allow for keyword arguments for coordinates.
-        kwargs = self._process_plot(
-            ax,
+        position_args = ["x", "y"]
+        if fmt is not None:
+            kwargs["fmt"] = fmt
+            position_args.append("fmt")
+
+        return self.plot_fn(
+            ax.plot,
             clip_to_boards, update_display_range,
             plot_range, plot_xlim, plot_ylim,
             skip_draw, draw_kw,
             use_rink_coordinates,
+            position_args=position_args,
             x=x, y=y,
             **kwargs,
         )
-
-        x = kwargs.pop("x")
-        y = kwargs.pop("y")
-
-        # Can't pass fmt as None.
-        if fmt is None:
-            return ax.plot(x, y, **kwargs)
-        else:
-            return ax.plot(x, y, fmt, **kwargs)
 
     def arrow(
         self,
@@ -874,15 +878,15 @@ class BaseRinkPlot(BaseRink):
             update_display_range: bool (default=False)
                 Whether or not to update the display range for plotted objects outside of the rink.
 
-                The display range will be updated to the extremity of the passed in coordinates. If, for example, scatter
-                points are outside the rink, half of the outermost point may be cut off.
+                The display range will be updated to the extremity of the passed in coordinates. If, for example,
+                arrows are outside the rink, the head may be cut off.
 
                 Adding Text will automatically update the display range, regardless of what is set here.
 
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
                 Restricts the portion of the rink that can be plotted to beyond just the boards.
 
-                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superseded by
                 xlim if provided.
 
                 "full": The entire length of the rink.
@@ -987,15 +991,15 @@ class BaseRinkPlot(BaseRink):
             update_display_range: bool (default=False)
                 Whether or not to update the display range for plotted objects outside of the rink.
 
-                The display range will be updated to the extremity of the passed in coordinates. If, for example, hexagons
-                are outside the rink, half of the outermost hexagon may be cut off.
+                The display range will be updated to the extremity of the passed in coordinates. If, for example,
+                hexagons are outside the rink, half of the outermost hexagon may be cut off.
 
                 Adding Text will automatically update the display range, regardless of what is set here.
 
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
                 Restricts the portion of the rink that can be plotted to beyond just the boards.
 
-                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superseded by
                 xlim if provided.
 
                 "full": The entire length of the rink.
