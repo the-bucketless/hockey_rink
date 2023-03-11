@@ -10,6 +10,7 @@ from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
 import numpy as np
+import re
 from scipy.stats import binned_statistic_2d
 
 
@@ -139,29 +140,6 @@ class BaseRinkPlot(BaseRink):
         values[mask] = np.nan
 
         return values
-
-    def _update_display_range(self, x, y, ax):
-        """ Update xlim and ylim for plotted features not constrained to the rink.
-
-        Parameters:
-            x: array_like
-
-            y: array_like
-
-            ax: matplotlib Axes
-                Axes in which the features were plotted.
-        """
-
-        x, y = self._rotate_xy(x, y, ax)
-
-        curr_xlim = ax.get_xlim()
-        curr_ylim = ax.get_ylim()
-
-        full_x = [*curr_xlim, *x]
-        full_y = [*curr_ylim, *y]
-
-        ax.set_xlim(min(full_x), max(full_x))
-        ax.set_ylim(min(full_y), max(full_y))
 
     def _bound_rink(self, x, y, plot_features, ax, transform, is_constrained, update_display_range):
         """ Update board contraints and limits of plot. """
@@ -794,7 +772,7 @@ class BaseRinkPlot(BaseRink):
             if child not in keep:
                 child.remove()
 
-    def get_plot_transform(self, ax=None, transform=None):
+    def get_plot_transform(self, ax=None, transform=None, include_transData=True):
         """ Return the matplotlib Transform to apply to plotted elements. """
 
         if ax is None:
@@ -803,10 +781,15 @@ class BaseRinkPlot(BaseRink):
         shift = Affine2D().translate(-self.x_shift, -self.y_shift)
         rotation = self._rotations.get(ax, Affine2D().rotate_deg(self.rotation))
 
-        if transform is None:
-            transform = Affine2D().identity()
+        rink_transform = shift + rotation
 
-        return shift + rotation + transform + ax.transData
+        if transform is not None:
+            rink_transform += transform
+
+        if include_transData:
+            rink_transform += ax.transData
+
+        return rink_transform
 
     def get_clip_path(self, ax=None, plot_range=None, plot_xlim=None, plot_ylim=None):
         """ The Polygon representing the clip path based on the outline of the boards subset to the desired
@@ -912,10 +895,34 @@ class BaseRinkPlot(BaseRink):
         for plot_feature in np.ravel(plot_features):
             plot_feature.set_clip_path(clip_path)
 
+    def _update_display_range(self, ax, **kwargs):
+        """ Update the display range to include the outermost x,y-coordinate. """
+
+        x_kws = [k for k in kwargs.keys() if re.fullmatch("x([0-9])*", k)]
+        y_kws = [k for k in kwargs.keys() if re.fullmatch("y([0-9])*", k)]
+
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+
+        # Don't want ax.transData included in transform when finding coordinates.
+        transform = self.get_plot_transform(ax, kwargs.get("transform"), False)
+
+        for x_kw, y_kw in zip(sorted(x_kws), sorted(y_kws)):
+            xy = transform.transform(tuple(zip(kwargs[x_kw], kwargs[y_kw])))
+            x, y = zip(*xy)
+
+            xlim = [min(xlim[0], np.min(x)), max(xlim[1], np.max(x))]
+            ylim = [min(ylim[0], np.min(y)), max(ylim[1], np.max(y))]
+
+            ab = Affine2D().translate(-self.x_shift, -self.y_shift) + Affine2D().rotate_deg(self.rotation)
+
+        ax.set_xlim(*xlim)
+        ax.set_ylim(*ylim)
+
     def plot_fn(
         self,
         fn,
-        clip_to_boards=True,
+        clip_to_boards=True, update_display_range=False,
         plot_range=None, plot_xlim=None, plot_ylim=None,
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
@@ -926,12 +933,20 @@ class BaseRinkPlot(BaseRink):
 
         Note that there may be functions for which this won't work/be appropriate. Also, all parameters passed to the
         plotting function are keyword only.
-        
+
         Arguments:
             fn: a matplotlib or seaborn plotting function
 
             clip_to_boards: bool (default=True)
                 Whether or not to clip the plot to stay within the bounds of the boards.
+
+            update_display_range: bool (default=False)
+                Whether or not to update the display range for plotted objects outside of the rink.
+
+                The display range will be updated to the extremity of the passed in coordinates. If, for example, scatter
+                points are outside the rink, half of the outermost point may be cut off.
+
+                Adding Text will automatically update the display range, regardless of what is set here.
 
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
                 Restricts the portion of the rink that can be plotted to beyond just the boards.
@@ -976,7 +991,7 @@ class BaseRinkPlot(BaseRink):
 
             kwargs: dict
                 All parameters to be passed to the plotting function.
-            
+
         Returns:
             The result from calling fn.
         """
@@ -995,13 +1010,17 @@ class BaseRinkPlot(BaseRink):
             draw_kw = draw_kw or {}
             self.draw(ax=ax, **draw_kw)
 
-        # Only use rink transform if plotting based on rink coordinates.
-        if use_rink_coordinates:
-            kwargs["transform"] = self.get_plot_transform(ax, kwargs.get("transform"))
-
         # Create boards constraint.
         if clip_to_boards and "clip_path" not in kwargs:
             kwargs["clip_path"] = self.get_clip_path(ax, plot_range, plot_xlim, plot_ylim)
+
+        # Only use rink transform if plotting based on rink coordinates.
+        if use_rink_coordinates:
+            if update_display_range and not clip_to_boards:
+                self._update_display_range(ax, **kwargs)
+
+            # Update transform after display range to access original transform in _update_display_range.
+            kwargs["transform"] = self.get_plot_transform(ax, kwargs.get("transform"))
 
         try:
             return fn(ax=ax, **kwargs)
