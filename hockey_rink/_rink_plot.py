@@ -246,71 +246,6 @@ class BaseRinkPlot(BaseRink):
         self._constrain_plot(collection, ax, transform)
 
     @_validate_plot
-    def arrow(self, x1, y1, x2, y2, *, is_constrained=True, update_display_range=False,
-              length_includes_head=True, head_width=1,
-              zorder=20, ax=None, **kwargs):
-        """ Wrapper for matplotlib arrow function.
-
-        Will plot to areas out of view when full ice surface is not displayed.
-
-        All parameters other than x1, y1, x2, and y2 require keywords.
-            ie) arrow(x1, y1, x2, y2, False) won't work, needs to be arrow(x1, y1, x2, y2, is_constrained=False)
-
-        Parameters:
-            x1: array_like
-                The starting x-coordinates of the arrows.
-
-            y1: array_like
-                The starting y-coordinates of the arrows.
-
-            x2: array_like
-                The ending x-coordinates of the arrows.
-
-            y2: array_like
-                The ending y-coordinates of the arrows.
-
-            is_constrained: bool; default: True
-                Indicates whether or not the plot is constrained to remain inside the boards.
-
-            update_display_range: bool; default: False
-                Indicates whether or not to update the display range when coordinates are outside
-                the given range. Only used when is_constrained is False.
-
-            length_includes_head: bool; default: True
-                Indicates if head of the arrow is to be included in calculating the length.
-
-            head_width: float or None; default: 1
-                Total width of the full arrow head.
-
-            zorder: float; default: 20
-                Determines which rink features the plot will draw over.
-
-            ax: matplotlib Axes; optional
-                Axes in which to draw the plot.  If not provided, will use the currently active Axes.
-
-            **kwargs: Any other matplotlib arrow properties; optional
-
-        Returns:
-            list of matplotlib FancyArrow
-        """
-
-        dx = x2 - x1
-        dy = y2 - y1
-
-        arrows = []
-        for i in range(len(x1)):
-            arrows.append(ax.arrow(x1[i], y1[i], dx[i], dy[i],
-                                   zorder=zorder, head_width=head_width,
-                                   length_includes_head=length_includes_head, **kwargs))
-
-        self._bound_rink(
-            [*x1, *x2], [*y1, *y2], arrows, ax,
-            kwargs["transform"], is_constrained, update_display_range
-        )
-
-        return arrows
-
-    @_validate_plot
     @_validate_values
     def hexbin(self, x, y, *, values=None, is_constrained=True, update_display_range=False, symmetrize=False,
                plot_range=None, plot_xlim=None, plot_ylim=None,
@@ -1171,3 +1106,139 @@ class BaseRinkPlot(BaseRink):
             return ax.plot(x, y, **kwargs)
         else:
             return ax.plot(x, y, fmt, **kwargs)
+
+    def arrow(
+        self,
+        x, y,
+        dx=None, dy=None,
+        x2=None, y2=None,
+        ax=None,
+        clip_to_boards=True, update_display_range=False,
+        plot_range=None, plot_xlim=None, plot_ylim=None,
+        skip_draw=False, draw_kw=None,
+        use_rink_coordinates=True,
+        **kwargs
+    ):
+        """ Wrapper for matplotlib arrow function.
+
+        Allows for arrow endpoints to be recorded as either delta values (dx, dy) or coordinates (x2, y2).
+
+        Parameters:
+            x: array-like
+                The x-coordinates of the base of the arrows.
+
+            y: array-like
+                The y-coordinates of the base of the arrows.
+
+            dx: array-like (optional)
+                The length of the arrow in the x direction.
+                One of dx and x2 has to be specified.
+
+            dy: array-like (optional)
+                The length of the arrow in the y direction.
+                One of dy and y2 has to be specified.
+
+            x2: array-like (optional)
+                The endpoint of the arrow.
+                One of dx and x2 has to be specified.
+
+            y2: array-like (optional)
+                The endpoint of the arrow.
+                One of dy and y2 has to be specified.
+
+            ax: matplotlib Axes (optional)
+                If not provided, will use the currently active Axes.
+
+            clip_to_boards: bool (default=True)
+                Whether or not to clip the plot to stay within the bounds of the boards.
+
+            update_display_range: bool (default=False)
+                Whether or not to update the display range for plotted objects outside of the rink.
+
+                The display range will be updated to the extremity of the passed in coordinates. If, for example, scatter
+                points are outside the rink, half of the outermost point may be cut off.
+
+                Adding Text will automatically update the display range, regardless of what is set here.
+
+            plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
+                Restricts the portion of the rink that can be plotted to beyond just the boards.
+
+                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
+                xlim if provided.
+
+                "full": The entire length of the rink.
+                "half" or "offense": The offensive half (largest x-coordinates) of the rink.
+                "defense": The defensive half (smallest x-coordinates).
+                "ozone": The offensive zone (blue line to end boards).
+                "dzone": The defensive zone (end boards to blue line).
+
+                Note that plot_range only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_xlim: float or (float, float) (optional)
+                The range of x-coordinates to include in the plot.
+                    float: the lower bound of the x-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the x-coordinates.
+
+                Note that plot_xlim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_ylim: float or (float, float) (optional)
+                The range of y-coordinates to include in the plot.
+                    float: the lower bound of the y-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the y-coordinates.
+
+                Note that plot_ylim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            skip_draw: bool (default=False)
+                If the rink has not already been drawn, setting to True will prevent the rink from being drawn.
+
+            draw_kw: dict (optional)
+                If the rink has not already been drawn, keyword arguments to pass to the draw method.
+
+            use_rink_coordinates: bool (default=True)
+                Whether or not the plotted features are using the rink's coordinates. If, eg, adding text relative the
+                size of the figure instead, this should be set to False.
+
+            kwargs: Any other matplotlib scatter properties. (optional)
+
+        Returns:
+            list of matplotlib FancyArrow
+        """
+
+        if ax is None:
+            ax = plt.gca()
+
+        data = kwargs.pop("data", None)
+
+        x, y, dx, dy, x2, y2 = [
+            data[var].values if isinstance(var, str) else var
+            for var in (x, y, dx, dy, x2, y2)
+        ]
+
+        x = np.ravel(x)
+        y = np.ravel(y)
+
+        # Calculate the length of the arrow if not provided.
+        if dx is None:
+            dx = x2 - x
+        if dy is None:
+            dy = y2 - y
+
+        dx = np.ravel(dx)
+        dy = np.ravel(dy)
+
+        return [
+            self.plot_fn(
+                ax.arrow,
+                clip_to_boards, update_display_range,
+                plot_range, plot_xlim, plot_ylim,
+                skip_draw, draw_kw,
+                use_rink_coordinates,
+                x=x_, y=y_,
+                dx=dx_, dy=dy_,
+                **kwargs,
+            )
+            for x_, y_, dx_, dy_ in zip(x, y, dx, dy)
+        ]
