@@ -120,14 +120,16 @@ class BaseRink(ABC):
 
             self._features[f"{feature_name}{numeral}"] = feature_class(**feature_params)
 
-    def _get_limits(self, display_range="full", xlim=None, ylim=None):
+    def _get_limits(self, display_range="full", xlim=None, ylim=None, include_boards=True):
         """ Return the xlim and ylim values corresponding to the parameters.
 
         Doesn't allow for coordinates extending beyond the extent of the boards.
         """
 
+        display_range = display_range or "full"
+
         # If boards are included in the limits, need to include their thickness.
-        half_length = self._boards.length / 2 + self._boards.thickness
+        half_length = self._boards.length / 2 + self._boards.thickness * include_boards
 
         # If nzone exists, its length may be needed to calculate xlim.
         try:
@@ -155,8 +157,11 @@ class BaseRink(ABC):
                 "offence": "offense",
                 "defence": "defense",
             }
-            display_range = display_range.lower() \
+            display_range = (
+                display_range
+                .lower()
                 .replace(" ", "")
+            )
             display_range = equivalencies.get(display_range, display_range)
 
             xlims = {
@@ -179,7 +184,7 @@ class BaseRink(ABC):
 
                 xlim = (xlim, half_length)
 
-        half_width = self._boards.width / 2 + self._boards.thickness
+        half_width = self._boards.width / 2 + self._boards.thickness * include_boards
         if ylim is None:
             ylim = (-half_width, half_width)
         else:
@@ -254,8 +259,8 @@ class BaseRink(ABC):
                 The portion of the rink to display. The entire rink is drawn regardless, display_range only
                 affects what is shown.
 
-                Only affects x-coordinates and can be used in conjuction with ylim, but will be superceded by
-                xlim if provided.
+                Can be used in conjunction with ylim. When used without ylim, the y-coordinates will be the entire
+                width of the ice. Will be superseded by xlim if provided.
 
                 Features not constrained within the boards (not including the boards) will only be displayed if
                 display_range is "full".
@@ -348,8 +353,8 @@ class BaseRink(ABC):
             display_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (default="full")
                 The portion of the rink to display.
 
-                Only affects x-coordinates and can be used in conjunction with ylim, but will be superceded by
-                xlim if provided.
+                Can be used in conjunction with ylim. When used without ylim, the y-coordinates will be the entire
+                width of the ice. Will be superseded by xlim if provided.
 
                 Features not bounded by the boards will only be displayed if display_range is "full".
 
