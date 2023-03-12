@@ -15,133 +15,6 @@ import re
 class BaseRinkPlot(BaseRink):
     """ Class extending BaseRink to include plotting methods. """
 
-    def contour(self, x, y, *, values=None, fill=True,
-                is_constrained=True, update_display_range=False, symmetrize=False,
-                plot_range=None, plot_xlim=None, plot_ylim=None,
-                statistic="sum", binsize=1, bins=None,
-                zorder=2, ax=None, **kwargs):
-        """ Wrapper for matplotlib contour and contourf functions.
-
-        Will plot to areas out of view when full ice surface is not displayed.
-        Use plot_range, plot_xlim, and plot_ylim to restrict to the area within view.
-
-        All parameters other than x and y require keywords.
-            ie) contour(x, y, values) won't work, needs to be contour(x, y, values=values)
-
-        Parameters:
-            x: array_like
-
-            y: array_like
-
-            values: array_like; optional
-                If None, values of 1 will be assigned to each x,y-coordinate provided.
-
-            fill: bool; default: True
-                Indicates whether or not to fill in the contours.
-
-            is_constrained: bool; default: True
-                Indicates whether or not the plot is constrained to remain inside the boards.
-
-                If plot ranges are used, also constrains coordinates included to remain inside the boards.
-
-            update_display_range: bool; default: False
-                Indicates whether or not to update the display range when coordinates are outside
-                the given range. Only used when is_constrained is False.
-
-            symmetrize: bool; default: False
-                Indicates whether or not to reflect the coordinates and values across the y-axis.
-
-            plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"}; optional
-                Restricts the portion of the rink that can be plotted to.  Does so by removing values outside of
-                the given range.
-
-                Can be used in conjunction with plot_ylim. When used without plot_ylim, the y-coordinates will be the
-                entire width of the ice. Will be superseded by plot_xlim if provided.
-
-                "full": The entire length of the rink is displayed.
-                "half" or "offense": The offensive half (largest x-coordinates) of the rink is displayed.
-                "defense": The defensive half (smallest x-coordinates) of the rink is displayed.
-                "ozone": The offensive zone (blue line to end boards) of the rink is displayed.
-                "dzone": The defensive zone (end boards to blue line) of the rink is displayed.
-
-                If no values are given for plot_range, plot_xlim, or plot_ylim, will use all coordinates provided.
-
-            plot_xlim: float or (float, float); optional
-                The range of x-coordinates to include in the plot.
-                    float: the lower bound of the x-coordinates.  The upper bound will be the boards.
-                    (float, float): The lower and upper bounds of the x-coordinates.
-
-                If no values are given for plot_range, plot_xlim, or plot_ylim, will use all coordinates provided.
-
-            plot_ylim: float or (float, float); optional
-                The range of y-coordinates to include in the plot.
-                    float: the lower bound of the y-coordinates.  The upper bound will be the boards.
-                    (float, float): The lower and upper bounds of the y-coordinates.
-
-                If no values are given for plot_range, plot_xlim, or plot_ylim, will use all coordinates provided.
-
-            statistic: string or callable; default: "sum"
-                The statistic to compute via scipy.  The following are available:
-                    "mean": the mean of values for points within each bin.
-                    "std": the standard deviation within each bin.
-                    "median": the median of values for points within each bin.
-                    "count": the number of points within each bin.
-                    "sum": the sum of values for points within each bin.
-                    "min": the minimum of values for points within each bin.
-                    "max": the maximum of values for points within each bin.
-                    function: a user-defined function which takes a 1D array of values and outputs a
-                        single numerical statistic.
-
-            binsize: float or (float, float); default: 1
-                The size of the bins for a given portion of the rink.
-                    float: the size of the bins for the two dimensions.
-                    (float, float): the size of the bins in each dimension.
-
-                Only used if bins is None.
-
-            bins: int or (int, int) or array_like or (array, array); optional
-                The bin specification:
-                    int: the number of bins for the two dimensions.
-                    (int, int): the number of bins in each dimension.
-                    array_like: the bin edges for the two dimensions.
-                    (array, array): the bin edges in each dimension.
-
-            zorder: float; default: 2
-                Determines which rink features the plot will draw over.
-
-            ax: matplotlib Axes; optional
-                Axes in which to draw the plot.  If not provided, will use the currently active Axes.
-
-            **kwargs: Any other matplotlib contour properties; optional
-
-        Returns:
-            matplotlib QuadContourSet
-        """
-
-        stat, x_edge, y_edge = self.binned_stat_2d(x, y, values, statistic, plot_xlim, plot_ylim,
-                                                   binsize, bins)
-
-        x_centers = (x_edge[:-1] + x_edge[1:]) / 2
-        y_centers = (y_edge[:-1] + y_edge[1:]) / 2
-
-        if plot_xlim is not None:
-            x_centers[-1] = max(x_centers[-1], plot_xlim[1])
-        if plot_ylim is not None:
-            y_centers[-1] = max(y_centers[-1], plot_ylim[1])
-
-        # avoid warning for argument not used in function
-        kwargs.pop("clip_on", None)
-
-        contour_function = ax.contourf if fill else ax.contour
-        img = contour_function(x_centers, y_centers, stat, zorder=zorder, **kwargs)
-
-        self._bound_rink(x, y, img.collections, ax, kwargs["transform"], is_constrained, update_display_range)
-
-        return img
-
-    """ Alias for contour. """
-    contourf = contour
-
     def clear(self, ax=None, keep=None):
         """ Remove all plotted items from the rink. Can only be applied after drawing the rink.
 
@@ -315,6 +188,7 @@ class BaseRinkPlot(BaseRink):
         x, y, values,
         nbins=10, binsize=None,
         reduce_fn=np.mean, fill_value=np.nan,
+        use_center_bin=False,
         plot_range=None, plot_xlim=None, plot_ylim=None,
     ):
         """ Compute a bi-dimensional binned statistic.
@@ -358,6 +232,9 @@ class BaseRinkPlot(BaseRink):
 
             fill_value: float (default=np.nan)
                 The value used when no values are present in a coordinate bin.
+
+            use_center_bin: bool (default=False)
+                Whether or not to use the center of bins rather than the endpoints.
 
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
                 Restricts the portion of the rink that values can be calculated from.
@@ -464,6 +341,12 @@ class BaseRinkPlot(BaseRink):
         xbins = xbins[:-1]
         ybins = ybins[:-1]
 
+        if use_center_bin:
+            if len(xbins) > 1:
+                xbins = xbins[:-1] + (xbins[1] - xbins[0]) / 2
+            if len(ybins) > 1:
+                ybins = ybins[:-1] + (ybins[1] - ybins[0]) / 2
+
         return result, xbins, ybins
 
     def _process_plot(
@@ -475,6 +358,7 @@ class BaseRinkPlot(BaseRink):
         use_rink_coordinates=True,
         nbins=None, binsize=None,
         reduce_fn=np.mean, fill_value=np.nan,
+        use_center_bin=False,
         zorder=20,
         **kwargs,
     ):
@@ -509,6 +393,7 @@ class BaseRinkPlot(BaseRink):
                 x, y, values,
                 nbins, binsize,
                 reduce_fn, fill_value,
+                use_center_bin,
                 plot_range, plot_xlim, plot_ylim,
             )
             kwargs["x"] = x_edge
@@ -526,6 +411,7 @@ class BaseRinkPlot(BaseRink):
         use_rink_coordinates=True,
         nbins=None, binsize=None,
         reduce_fn=np.mean, fill_value=np.nan,
+        use_center_bin=False,
         zorder=20,
         position_args=None,
         **kwargs
@@ -625,6 +511,10 @@ class BaseRinkPlot(BaseRink):
             fill_value: float (default=np.nan)
                 The value used in plots requiring binned statistics when no values are present in a coordinate bin.
 
+            use_center_bin: bool (default=False)
+                Whether or not to use the center of bins for plots requiring binned statistics rather than the endpoints.
+                Used in contour plots but not heatmaps.
+
             zorder: float (default=20)
                 Determines which rink features the plot will draw over.
 
@@ -655,6 +545,7 @@ class BaseRinkPlot(BaseRink):
             use_rink_coordinates,
             nbins, binsize,
             reduce_fn, fill_value,
+            use_center_bin,
             zorder,
             **kwargs,
         )
@@ -1101,6 +992,10 @@ class BaseRinkPlot(BaseRink):
     ):
         """ Wrapper for matplotlib pcolormesh function.
 
+        Will attempt to create the bins based on the parameters. If the bins have already been set, this can be
+        skipped by setting nbins to None.
+            ie) rink.heatmap(xbins, ybins, values, nbins=None)
+
         Only x, y, and values will be looked for in the data parameter, if provided.
 
         Parameters:
@@ -1116,7 +1011,8 @@ class BaseRinkPlot(BaseRink):
                 The first int will be the number of bins used in the x direction and the second in the y. If only one
                 value provided, it will be used for both.
 
-                Will be ignored if binsize is not None. At least one of nbins and binsize must be provided.
+                Will be ignored if binsize is not None. At least one of nbins and binsize must be provided unless
+                x and y are the bins to be used.
 
             binsize: float or (float, float) (optional)
                 The size of the bins.
@@ -1124,7 +1020,7 @@ class BaseRinkPlot(BaseRink):
                 The first float will be the size of the bins in the x direction and the second in the y. If only one
                 value provided, it will be used for both.
 
-                At least one of nbins and binsize must be provided.
+                At least one of nbins and binsize must be provided unless x and y are the bins to be used.
 
             reduce_fn: str or callable (default np.mean)
                 The function used on the binned statistics.
@@ -1220,7 +1116,175 @@ class BaseRinkPlot(BaseRink):
             values=values,
             nbins=nbins, binsize=binsize,
             reduce_fn=reduce_fn, fill_value=fill_value,
+            use_center_bin=False,
             zorder=zorder,
             position_args=["x", "y", "values"],
             **kwargs,
         )
+
+    def contour(
+        self,
+        x, y, values=None,
+        nbins=10, binsize=None,
+        reduce_fn=np.mean, fill_value=0,
+        use_center_bin=True,
+        ax=None,
+        clip_to_boards=True, update_display_range=False,
+        plot_range=None, plot_xlim=None, plot_ylim=None,
+        skip_draw=False, draw_kw=None,
+        use_rink_coordinates=True,
+        zorder=2,
+        fill=False,
+        **kwargs
+    ):
+        """ Wrapper for matplotlib contour and contourf functions.
+
+        contourf can be accessed by setting fill to True.
+
+        Will attempt to create the bins based on the parameters. If the bins have already been set, this can be
+        skipped by setting nbins to None.
+            ie) rink.contour(xbins, ybins, values, nbins=None)
+
+        Only x, y, and values will be looked for in the data parameter, if provided.
+
+        Parameters:
+            x: array-like
+            y: array-like
+
+            values: array_like (optional)
+                If None, values of 1 will be assigned to each coordinate.
+
+            nbins: int or (int, int) (optional)
+                The number of bins.
+
+                The first int will be the number of bins used in the x direction and the second in the y. If only one
+                value provided, it will be used for both.
+
+                Will be ignored if binsize is not None. At least one of nbins and binsize must be provided unless
+                x and y are the bins to be used.
+
+            binsize: float or (float, float) (optional)
+                The size of the bins.
+
+                The first float will be the size of the bins in the x direction and the second in the y. If only one
+                value provided, it will be used for both.
+
+                At least one of nbins and binsize must be provided unless x and y are the bins to be used.
+
+            reduce_fn: str or callable (default np.mean)
+                The function used on the binned statistics.
+
+                The following are available str options:
+                    "mean"
+                    "sum"
+                    "count"
+                    "std"
+                    "median"
+                    "min"
+                    "max"
+
+                If None, will default to count.
+
+            fill_value: float (default=0)
+                The value used when no values are present in a coordinate bin.
+
+            ax: matplotlib Axes (optional)
+                If not provided, will use the currently active Axes.
+
+            clip_to_boards: bool (default=True)
+                Whether or not to clip the plot to stay within the bounds of the boards.
+
+            update_display_range: bool (default=False)
+                Whether or not to update the display range for plotted objects outside of the rink.
+
+                The display range will be updated to the extremity of the passed in coordinates.
+
+            plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
+                Restricts the portion of the rink that can be plotted to beyond just the boards.
+
+                Can be used in conjunction with plot_ylim. When used without plot_ylim, the y-coordinates will be the
+                entire width of the ice. Will be superseded by plot_xlim if provided.
+
+                "full": The entire length of the rink.
+                "half" or "offense": The offensive half (largest x-coordinates) of the rink.
+                "defense": The defensive half (smallest x-coordinates).
+                "ozone": The offensive zone (blue line to end boards).
+                "dzone": The defensive zone (end boards to blue line).
+
+                Note that plot_range only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_xlim: float or (float, float) (optional)
+                The range of x-coordinates to include in the plot.
+                    float: the lower bound of the x-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the x-coordinates.
+
+                Note that plot_xlim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            plot_ylim: float or (float, float) (optional)
+                The range of y-coordinates to include in the plot.
+                    float: the lower bound of the y-coordinates. The upper bound will be the boards.
+                    (float, float): The lower and upper bounds of the y-coordinates.
+
+                Note that plot_ylim only affects what portion is plotted. Coordinates outside the range can still
+                impact what is shown.
+
+            skip_draw: bool (default=False)
+                If the rink has not already been drawn, setting to True will prevent the rink from being drawn.
+
+            draw_kw: dict (optional)
+                If the rink has not already been drawn, keyword arguments to pass to the draw method.
+
+            use_rink_coordinates: bool (default=True)
+                Whether or not the plotted features are using the rink's coordinates.
+
+            zorder: float (default=2)
+                Determines which rink features the plot will draw over.
+
+            fill: bool (default=False)
+                Whether or not to fill in the contours (use contourf rather than contour).
+
+            kwargs: Any other matplotlib contour properties. (optional)
+
+        Returns:
+            matplotlib QuadContourSet
+        """
+
+        if ax is None:
+            ax = plt.gca()
+
+        data = kwargs.pop("data", None)
+        x, y, values = [data[var] if isinstance(var, str) else var for var in (x, y, values)]
+
+        # ax.contour doesn't accept a clip_path parameter.
+        # Need to delay clipping until after drawing.
+        kwargs = self._process_plot(
+            ax,
+            False, update_display_range,
+            plot_range, plot_xlim, plot_ylim,
+            skip_draw, draw_kw,
+            use_rink_coordinates,
+            nbins, binsize,
+            reduce_fn, fill_value,
+            use_center_bin,
+            zorder,
+            x=x, y=y, values=values,
+            **kwargs,
+        )
+
+        contour_plot = ax.contourf if fill else ax.contour
+
+        img = contour_plot(
+            kwargs.pop("x"), kwargs.pop("y"), kwargs.pop("values"),
+            **kwargs,
+        )
+
+        if clip_to_boards:
+            self.clip_plot(img.collections, ax, plot_range, plot_xlim, plot_ylim)
+
+        return img
+
+    def contourf(self, *args, **kwargs):
+        kwargs["fill"] = kwargs.pop("fill", True)
+        return self.contour(*args, **kwargs)
