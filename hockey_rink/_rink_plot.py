@@ -188,10 +188,13 @@ class BaseRinkPlot(BaseRink):
         x, y, values,
         nbins=10, binsize=None,
         reduce_fn=np.mean, fill_value=np.nan,
-        use_center_bin=False,
+        as_center_bin=False,
         plot_range=None, plot_xlim=None, plot_ylim=None,
     ):
         """ Compute a bi-dimensional binned statistic.
+
+        When creating centered bins, by default, two extra bins are created to enforce symmetry when flipping
+        coordinates. Though, there may still be minor differences as a result of coordinate cutoffs (< vs <=).
 
         Parameters:
             x: array-like
@@ -233,7 +236,7 @@ class BaseRinkPlot(BaseRink):
             fill_value: float (default=np.nan)
                 The value used when no values are present in a coordinate bin.
 
-            use_center_bin: bool (default=False)
+            as_center_bin: bool (default=False)
                 Whether or not to use the center of bins rather than the endpoints.
 
             plot_range: {"full", "half", "offense", "defense", "ozone", "dzone"} (optional)
@@ -315,13 +318,15 @@ class BaseRinkPlot(BaseRink):
             xbins = np.arange(xlim[0], xlim[1] + binsize[0], binsize[0])
             ybins = np.arange(ylim[0], ylim[1] + binsize[-1], binsize[-1])
 
+        # Add an extra bins to the start and end when centering.
+        delta_x = xbins[1] - xbins[0]
+        delta_y = ybins[1] - ybins[0]
+        if as_center_bin:
+            xbins = np.concatenate([xbins[0] - delta_x, xbins, xbins[-1] + delta_x], axis=None)
+            ybins = np.concatenate([ybins[0] - delta_y, ybins, ybins[-1] + delta_y], axis=None)
+
         n_xbins = len(xbins) - 1
         n_ybins = len(ybins) - 1
-
-        # Add an extra bin to the end of each to avoid including values from coordinates outside the bounds.
-        # Needs to be removed before return.
-        xbins = np.append(xbins, xbins[-1] + 1)
-        ybins = np.append(ybins, ybins[-1] + 1)
 
         # By default, side="left" which forces values from lower bound into bin by themselves. Clip to push them into
         # 1st bin instead of 0th and subtract 1 to get correct number of bins.
@@ -337,15 +342,9 @@ class BaseRinkPlot(BaseRink):
                 if group_vals.size:
                     result[j, i] = reduce_fn(group_vals)
 
-        # Remove extra bin.
-        xbins = xbins[:-1]
-        ybins = ybins[:-1]
-
-        if use_center_bin:
-            if len(xbins) > 1:
-                xbins = xbins[:-1] + (xbins[1] - xbins[0]) / 2
-            if len(ybins) > 1:
-                ybins = ybins[:-1] + (ybins[1] - ybins[0]) / 2
+        if as_center_bin:
+            xbins = (xbins[1:] + xbins[:-1]) / 2
+            ybins = (ybins[1:] + ybins[:-1]) / 2
 
         return result, xbins, ybins
 
@@ -358,7 +357,7 @@ class BaseRinkPlot(BaseRink):
         use_rink_coordinates=True,
         nbins=None, binsize=None,
         reduce_fn=np.mean, fill_value=np.nan,
-        use_center_bin=False,
+        as_center_bin=False,
         zorder=20,
         **kwargs,
     ):
@@ -393,7 +392,7 @@ class BaseRinkPlot(BaseRink):
                 x, y, values,
                 nbins, binsize,
                 reduce_fn, fill_value,
-                use_center_bin,
+                as_center_bin,
                 plot_range, plot_xlim, plot_ylim,
             )
             kwargs["x"] = x_edge
@@ -411,7 +410,7 @@ class BaseRinkPlot(BaseRink):
         use_rink_coordinates=True,
         nbins=None, binsize=None,
         reduce_fn=np.mean, fill_value=np.nan,
-        use_center_bin=False,
+        as_center_bin=False,
         zorder=20,
         position_args=None,
         **kwargs
@@ -511,7 +510,7 @@ class BaseRinkPlot(BaseRink):
             fill_value: float (default=np.nan)
                 The value used in plots requiring binned statistics when no values are present in a coordinate bin.
 
-            use_center_bin: bool (default=False)
+            as_center_bin: bool (default=False)
                 Whether or not to use the center of bins for plots requiring binned statistics rather than the endpoints.
                 Used in contour plots but not heatmaps.
 
@@ -545,7 +544,7 @@ class BaseRinkPlot(BaseRink):
             use_rink_coordinates,
             nbins, binsize,
             reduce_fn, fill_value,
-            use_center_bin,
+            as_center_bin,
             zorder,
             **kwargs,
         )
@@ -987,7 +986,7 @@ class BaseRinkPlot(BaseRink):
         plot_range=None, plot_xlim=None, plot_ylim=None,
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
-        zorder=2,
+        zorder=3,
         **kwargs
     ):
         """ Wrapper for matplotlib pcolormesh function.
@@ -1091,7 +1090,7 @@ class BaseRinkPlot(BaseRink):
             use_rink_coordinates: bool (default=True)
                 Whether or not the plotted features are using the rink's coordinates.
 
-            zorder: float (default=2)
+            zorder: float (default=3)
                 Determines which rink features the plot will draw over.
 
             kwargs: Any other matplotlib pcolormesh properties. (optional)
@@ -1116,7 +1115,7 @@ class BaseRinkPlot(BaseRink):
             values=values,
             nbins=nbins, binsize=binsize,
             reduce_fn=reduce_fn, fill_value=fill_value,
-            use_center_bin=False,
+            as_center_bin=False,
             zorder=zorder,
             position_args=["x", "y", "values"],
             **kwargs,
@@ -1127,13 +1126,13 @@ class BaseRinkPlot(BaseRink):
         x, y, values=None,
         nbins=10, binsize=None,
         reduce_fn=np.mean, fill_value=0,
-        use_center_bin=True,
+        as_center_bin=True,
         ax=None,
         clip_to_boards=True, update_display_range=False,
         plot_range=None, plot_xlim=None, plot_ylim=None,
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
-        zorder=2,
+        zorder=3,
         fill=False,
         **kwargs
     ):
@@ -1144,6 +1143,9 @@ class BaseRinkPlot(BaseRink):
         Will attempt to create the bins based on the parameters. If the bins have already been set, this can be
         skipped by setting nbins to None.
             ie) rink.contour(xbins, ybins, values, nbins=None)
+
+        By default, two extra bins are created to enforce symmetry when flipping coordinates. Though, there may still
+        be minor differences as a result of coordinate cutoffs (< vs <=).
 
         Only x, y, and values will be looked for in the data parameter, if provided.
 
@@ -1239,7 +1241,7 @@ class BaseRinkPlot(BaseRink):
             use_rink_coordinates: bool (default=True)
                 Whether or not the plotted features are using the rink's coordinates.
 
-            zorder: float (default=2)
+            zorder: float (default=3)
                 Determines which rink features the plot will draw over.
 
             fill: bool (default=False)
@@ -1267,7 +1269,7 @@ class BaseRinkPlot(BaseRink):
             use_rink_coordinates,
             nbins, binsize,
             reduce_fn, fill_value,
-            use_center_bin,
+            as_center_bin,
             zorder,
             x=x, y=y, values=values,
             **kwargs,
