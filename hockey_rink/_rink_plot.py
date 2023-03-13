@@ -1290,3 +1290,64 @@ class BaseRinkPlot(BaseRink):
     def contourf(self, *args, **kwargs):
         kwargs["fill"] = kwargs.pop("fill", True)
         return self.contour(*args, **kwargs)
+
+def text(
+    self,
+    x, y, s,
+    ax=None,
+    skip_draw=False, draw_kw=None,
+    use_rink_coordinates=True,
+    zorder=101,
+    **kwargs
+):
+    """ Wrapper for matplotlib text function.
+
+    Does not get clipped to boards and will update display range.
+
+    Does not accept a data parameter, but multiple texts can be added simultaneously by passing arrays for
+    x, y, and s.
+
+    Parameters:
+        x: array-like
+        y: array-like
+
+        s: array-like
+            The text. Multiple texts can be included with multiple coordinates.
+
+        ax: matplotlib Axes (optional)
+            If not provided, will use the currently active Axes.
+
+        skip_draw: bool (default=False)
+            If the rink has not already been drawn, setting to True will prevent the rink from being drawn.
+
+        draw_kw: dict (optional)
+            If the rink has not already been drawn, keyword arguments to pass to the draw method.
+
+        use_rink_coordinates: bool (default=True)
+            Whether or not the plotted features are using the rink's coordinates.
+
+        zorder: float (default=101)
+            Determines which rink features the text will be drawn over.
+
+        kwargs: Any other matplotlib text properties. (optional)
+
+    Returns:
+        list of matplotlib Text
+    """
+
+    if ax is None:
+        ax = plt.gca()
+
+    return [
+        self.plot_fn(
+            ax.text,
+            False, False,
+            None, None, None,
+            skip_draw, draw_kw,
+            use_rink_coordinates,
+            zorder=zorder,
+            x=x_, y=y_, s=s_,
+            **kwargs,
+        )
+        for x_, y_, s_ in zip(np.ravel(x), np.ravel(y), np.ravel(s))
+    ]
