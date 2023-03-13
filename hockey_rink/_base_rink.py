@@ -215,17 +215,6 @@ class BaseRink(ABC):
         rotation = self._rotations.get(ax, Affine2D().rotate_deg(self.rotation))
         return rotation + ax.transData
 
-    @staticmethod
-    def copy_(param):
-        """ Return a copy of a parameter where possible. """
-
-        try:
-            param = param.copy()
-        except AttributeError:
-            pass
-
-        return param
-
     def _rotate_xy(self, x, y, ax=None):
         """ Rotate x,y-coordinates based on the Axes object. If no Axes provided, uses the rink's default rotation. """
         rotation = Affine2D().rotate_deg(self.rotation) if ax is None else self._rotations[ax]
@@ -237,13 +226,19 @@ class BaseRink(ABC):
         If no Axes provided, uses the rink's default parameters.
         """
 
-        x = self.copy_(x)
-        y = self.copy_(y)
+        x = np.array(x)
+        y = np.array(y)
+
+        # Maintain shape to revert after ravel.
+        shape_x = x.shape
+        shape_y = y.shape
 
         x = np.ravel(x) - self.x_shift
         y = np.ravel(y) - self.y_shift
 
-        return self._rotate_xy(x, y, ax)
+        x, y = self._rotate_xy(x, y, ax)
+
+        return x.reshape(shape_x), y.reshape(shape_y)
 
     def draw(self, ax=None, figsize=None, display_range="full", xlim=None, ylim=None, rotation=None):
         """ Draw the rink.
