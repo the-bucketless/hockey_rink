@@ -1353,6 +1353,10 @@ class BaseRinkPlot(BaseRink):
                 except KeyError:
                     pass
 
+        # Set default transform if not using rink coordinates.
+        if not use_rink_coordinates:
+            kwargs["transform"] = kwargs.get("transform", ax.transAxes)
+
         return [
             self.plot_fn(
                 ax.text,
