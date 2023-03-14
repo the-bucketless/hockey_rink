@@ -288,18 +288,16 @@ class BaseRinkPlot(BaseRink):
 
         reduce_fn = reduce_fn_names.get(reduce_fn, reduce_fn)
 
-        if (plot_range, plot_xlim, plot_ylim) != (None, None, None):
+        # Use the data to set bounds when plot_range not provided.
+        if plot_range is plot_xlim is plot_ylim is None:
+            xlim = [np.min(x), np.max(x)]
+            ylim = [np.min(y), np.max(y)]
+        else:
             xlim, ylim = self._get_limits(plot_range, plot_xlim, plot_ylim, False)
 
             # Need to shift to allow for reverse shift when plotting.
             xlim = [x + self.x_shift for x in xlim]
             ylim = [y + self.y_shift for y in ylim]
-
-        # Use the data to set anything not provided.
-        if plot_range is plot_xlim is None:
-            xlim = [np.min(x), np.max(x)]
-        if plot_range is plot_ylim is None:
-            ylim = [np.min(y), np.max(y)]
 
         if binsize is None:
             try:
@@ -367,10 +365,6 @@ class BaseRinkPlot(BaseRink):
         if not (ax in self._drawn or skip_draw):
             draw_kw = draw_kw or {}
             self.draw(ax=ax, **draw_kw)
-
-        # Create boards constraint.
-        if clip_to_boards and "clip_path" not in kwargs:
-            kwargs["clip_path"] = self.get_clip_path(ax, plot_range, plot_xlim, plot_ylim)
 
         # Only use rink transform if plotting based on rink coordinates.
         if use_rink_coordinates:
@@ -553,9 +547,15 @@ class BaseRinkPlot(BaseRink):
         args = [kwargs.pop(arg) for arg in position_args]
 
         if is_ax_fn:
-            return fn(*args, **kwargs)
+            plot_image = fn(*args, **kwargs)
         else:
-            return fn(*args, **kwargs, ax=ax)
+            plot_image = fn(*args, **kwargs, ax=ax)
+
+        # Have to use set_clip_path because including clip_path in above updates axis limits.
+        if clip_to_boards:
+            self.clip_plot(plot_image, ax, plot_range, plot_xlim, plot_ylim)
+
+        return plot_image
 
     def scatter(
         self,
