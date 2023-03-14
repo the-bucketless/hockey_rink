@@ -20,6 +20,7 @@ There is also room for customization. For example, to change the dimension of a 
 ```
 rink = Rink(boards={"length": 150, "width": 150, "radius": 75})
 ```
+  
 ![](images/circular-rink.png)
 
 Each rink comes with a default set of features, but additional features can be added. Custom features should inherit 
