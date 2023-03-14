@@ -1,6 +1,4 @@
-# Hockey Rink
-
-![](examples/circular-rink.png)
+![](images/hockey-rink-logo.png)
 
 A Python library for plotting hockey rinks with Matplotlib.
 
@@ -8,133 +6,155 @@ A Python library for plotting hockey rinks with Matplotlib.
 ```pip install hockey_rink```
 
 ## Current Rinks
-The following shows the custom rinks currently available for plotting.
 
-```
-from hockey_rink import NHLRink, IIHFRink, NWHLRink
-import matplotlib.pyplot as plt
-
-fig, axs = plt.subplots(1, 3, sharey=True, figsize=(12, 6), gridspec_kw={"width_ratios": [1, 98.4/85, 1]})
-nhl_rink = NHLRink(rotation=90)
-iihf_rink = IIHFRink(rotation=90)
-nwhl_rink = NWHLRink(rotation=90)
-axs[0] = nhl_rink.draw(ax=axs[0])
-axs[1] = iihf_rink.draw(ax=axs[1])
-axs[2] = nwhl_rink.draw(ax=axs[2])
-```
-
-![](examples/rinks.png)
-
-The NWHL logo comes from [the NWHL site](https://www.nwhl.zone/news/nwhl-unveils-isobel-cup-logo-for-2021-season).
+The following rinks are available for use:
+- Rink
+- NHLRink
+- NWHLRink (from the 2021 Lake Placid games)
+- IIHFRink
+- OldIIHFRink
 
 ## Customization
-There is also room for customization.  The image at the top was created as follows:  
-  
-```rink = Rink(rotation=45, boards={"length": 150, "width": 150, "radius": 75})```
+There is also room for customization. For example, to change the dimension of a rink, update the length and/or width of the boards:
 
-Rinks also allow for additional features to be added.  Custom features should inherit from RinkFeature and
-override the _get_centered_xy method.  The draw method can also be overridden if the desired feature can't be drawn
-with a matplotlib Polygon, though _get_centered_xy should still provide the feature's boundaries.  CircularImage
-provides an example of this by inheriting from RinkCircle.
+```rink = Rink(boards={"length": 150, "width": 150, "radius": 75})```
+![](images/circular-rink.png)
+
+Each rink comes with a default set of features, but additional features can be added. Custom features should inherit 
+from RinkFeature and override the _get_centered_xy method. The draw method can also be overridden if the desired feature can't be drawn
+with a Matplotlib Polygon, though _get_centered_xy should still provide the feature's boundaries. The RinkImage
+feature provides an example of this by inheriting from RinkRectangle.
 
 If a custom feature is to be constrained to only display within the rink, the returned object needs to have a 
 set_clip_path method.
 
 ## Plots
-There are currently wrappers available for the following Matplotlib plots:  
-    - plot  
-    - scatter  
-    - arrow  
-    - hexbin  
-    - pcolormesh (heatmap in Hockey Rink)  
-    - contour  
-    - contourf  
+There are currently wrappers available for the following Matplotlib plotting methods:  
+- plot  
+- scatter  
+- arrow  
+- hexbin  
+- pcolormesh (heatmap in hockey-rink)  
+- contour  
+- contourf  
+- text
     
-If you'd like to bypass the wrappers, you can convert coordinates to the proper scale with convert_xy:  
+There's also a rink.plot_fn which will take as its first argument a plotting method from either Matplotlib or seaborn 
+and will attempt to make the desired plot.
   
-```
-rink = Rink()
-x, y = rink.convert_xy(x, y)
-```
-
-When plotting to a partially drawn surface, the plot will be applied to the entire rink, not what's visible.  This can
-be avoided by setting plot_range (or plot_xlim and plot_ylim) in the plotting functions where they're available.
-
-It's also important to realize that the plotting functions only allow arguments to be passed without keywords for the
-coordinates.  
-ie) ```hexbin(x, y, values)``` will throw an error.
-
-The correct call is ```hexbin(x, y, values=values)```
-
-## Examples
-
-Let's look at some NWHL data via the [Big Data Cup](https://www.stathletes.com/big-data-cup/).
-
-The first game is Minnesota vs Boston, so we'll go with that and do a scatter plot of each team's shots.
-
-```
-from hockey_rink import NWHLRink
-import pandas as pd
-
-df = pd.read_csv("https://raw.githubusercontent.com/bigdatacup/Big-Data-Cup-2021/main/hackathon_nwhl.csv")
-game_df = df.loc[(df["Home Team"] == "Minnesota Whitecaps") & (df["Away Team"] == "Boston Pride")]
-shots = game_df.loc[(game_df.Event.isin(["Shot", "Goal"]))]
-boston_shots = shots[shots.Team == "Boston Pride"]
-minnesota_shots = shots[shots.Team == "Minnesota Whitecaps"]
-rink = NWHLRink(x_shift=100, y_shift=42.5, nzone={"length": 50})
-ax = rink.draw()
-rink.scatter(boston_shots["X Coordinate"], boston_shots["Y Coordinate"])
-rink.scatter(200 - minnesota_shots["X Coordinate"], 85 - minnesota_shots["Y Coordinate"])
-```
-
-![](examples/nwhl-shots.png)
-
-Extending the example, let's look at all of Boston's passes.
-
-```
-boston_passes = game_df.loc[(game_df.Team == "Boston Pride") & (game_df.Event == "Play")]
-ax.clear()
-rink.draw()
-arrows = rink.arrow(boston_passes["X Coordinate"], boston_passes["Y Coordinate"], 
-                    boston_passes["X Coordinate 2"], boston_passes["Y Coordinate 2"], color="yellow")
-```
-
-![](examples/boston-passes.png)
-
-For some of the other plots, let's look at some NHL shooting percentages.
-
-To mix things up a little, binsize will take different values in each plot and the heatmap won't include shots from
-below the goal line.  We'll also throw in a colorbar for the contour plot.
 ```
 from hockey_rink import NHLRink
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+import seaborn as sns
 
-pbp = pd.read_csv("https://hockey-data.harryshomer.com/pbp/nhl_pbp20192020.csv.gz", compression="gzip")
-pbp["goal"] = (pbp.Event == "GOAL").astype(int)
-pbp["x"] = np.abs(pbp.xC)
-pbp["y"] = pbp.yC * np.sign(pbp.xC)
-shots = pbp.loc[(pbp.Ev_Zone == "Off") & ~pbp.x.isna() & ~pbp.y.isna() & (pbp.Event.isin(["GOAL", "SHOT", "MISS"]))]
+df = pd.read_parquet("https://github.com/sportsdataverse/fastRhockey-data/blob/main/nhl/pbp/parquet/play_by_play_2023.parquet?raw=true")
 
-fig, axs = plt.subplots(1, 3, figsize=(14, 8))
-rink = NHLRink(rotation=270)
-for i in range(3):
-    rink.draw(ax=axs[i], display_range="ozone")
-contour_img = rink.contourf(shots.x, shots.y, values=shots.goal, ax=axs[0], cmap="bwr", 
-                            plot_range="ozone", binsize=10, levels=50, statistic="mean")
-plt.colorbar(contour_img, ax=axs[0], orientation="horizontal")
-rink.heatmap(shots.x, shots.y, values=shots.goal, ax=axs[1], cmap="magma",
-             plot_xlim=(25, 89), statistic="mean", vmax=0.2, binsize=3)
-rink.hexbin(shots.x, shots.y, values=shots.goal, ax=axs[2], binsize=(8, 12), plot_range="ozone", zorder=25, alpha=0.85)
+team_colors = {"San Jose Sharks": (0, 0.5, 0.5), "Nashville Predators": (1, 0.7, 0.1)}
+
+rink = NHLRink(
+    sharks_logo={
+        "feature_class": RinkImage,
+        "image_path": "https://upload.wikimedia.org/wikipedia/en/thumb/3/37/SanJoseSharksLogo.svg/330px-SanJoseSharksLogo.svg.png",
+        "x": 55, "length": 50, "width": 42,
+        "zorder": 15, "alpha": 0.5,
+    },
+    preds_logo={
+        "feature_class": RinkImage,
+        "image_path": "https://upload.wikimedia.org/wikipedia/en/thumb/9/9c/Nashville_Predators_Logo_%282011%29.svg/330px-Nashville_Predators_Logo_%282011%29.svg.png",
+        "x": -55, "length": 50, "width": 29,
+        "zorder": 15, "alpha": 0.5,
+    }
+)
+
+first_period = df.query("game_id == 2022020001 and event_type in ('GOAL', 'SHOT', 'MISS') and period == 1")
+
+fig, axs = plt.subplots(1, 2, figsize=(18, 8))
+rink.scatter("x", "y", facecolor=first_period.event_team.map(team_colors), s=100, edgecolor="white", data=first_period, ax=axs[0])
+rink.plot_fn(sns.scatterplot, x="x", y="y", hue="event_team", s=100, legend=False, data=first_period, ax=axs[1], palette=team_colors)
 ```
+![](images/scatter.png)
 
-![](examples/shooting-pct.png)
+When using plots that require binning, it's often best to include a plot_range even when it isn't being used to 
+find the bins. Here's an example using shooting percentage.
+
+```
+import numpy as np
+
+ozone_shots = (
+    shots
+    .assign(
+        is_goal=shots.event_type == "GOAL",
+        x=np.abs(shots.x),
+        y=shots.y * np.sign(shots.x),
+    )
+)
+
+fig, axs = plt.subplots(1, 3, figsize=(18, 8))
+
+rink = NHLRink(rotation=270, net={"visible": False})
+
+rink.contourf(
+    "x", "y", "is_goal", data=ozone_shots, 
+    nbins=8, levels=30, plot_range="ozone", cmap="bwr",
+    ax=axs[0], draw_kw={"display_range": "ozone"},
+)
+
+rink.heatmap(
+    "x", "y", "is_goal", data=ozone_shots, 
+    binsize=5, fill_value=0, plot_xlim=(25, 89), cmap="magma", vmax=0.25,
+    ax=axs[1], draw_kw={"display_range": "ozone"},
+)
+
+rink.hexbin(
+    "x", "y", "is_goal", data=ozone_shots,
+    gridsize=(14, 8), plot_range="ozone", alpha=0.85, vmax=0.25,
+    ax=axs[2], draw_kw={"display_range": "ozone"},
+)
+```
+![](images/binned-plots.png)
+
+There's also a clear method which will attempt to remove anything that isn't part of the rink unless it's passed 
+to the keep variable. This can be useful for animations.
+```
+df = (
+    pd.read_csv("https://github.com/the-bucketless/bdc/raw/main/data/2022-02-08%20Canada%20at%20USA/2022-02-08%20Canada%20at%20USA%20P1%20PP1.csv")
+    .query("frame_id == 400")
+    .assign(team_color=lambda df_: np.where(df_.team_name == "Canada", "lightcoral", "aqua"))
+)
+
+rink = NHLRink(x_shift=100, y_shift=42.5, rotation=270)
+
+fig, axs = plt.subplots(1, 2, figsize=(12, 8))
+for ax in axs:
+    rink.draw(display_range="ozone", ax=ax)
+    
+    rink.scatter(
+        "x_ft", "y_ft", ax=ax,
+        facecolor="team_color", edgecolor="black", s=300,
+        data=df,
+    )
+
+    rink.text(
+        "x_ft", "y_ft", "jersey_number", ax=ax,
+        ha="center", va="center", fontsize=14, 
+        data=df,
+    )
+    
+    teams_text = rink.text(
+        0.5, 0.05, "Canada vs USA", ax=ax,
+        use_rink_coordinates=False,
+        ha="center", va="center", fontsize=20,
+    )
+
+rink.clear(ax=axs[1], keep=[teams_text])
+```
+![](images/clear-example.png)
 
 ## Inspiration
 This project was partly inspired by [mplsoccer](https://github.com/andrewRowlinson/mplsoccer).
 
-Hopefully, it can lower a barrier for someone looking to get involved in hockey analytics.
+Hopefully, it can make things a little easier for anyone looking to get involved in hockey analytics.
 
 ## Contact
-You can find me on twitter [@the_bucketless](https://twitter.com/the_bucketless) or email me at thebucketless@protonmail.com if you'd like to get in touch.
+You can find me on twitter [@the_bucketless](https://twitter.com/the_bucketless) or email me at thebucketless@protonmail.com.
