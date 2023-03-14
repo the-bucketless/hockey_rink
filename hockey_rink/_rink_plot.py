@@ -511,8 +511,8 @@ class BaseRinkPlot(BaseRink):
                 The value used in plots requiring binned statistics when no values are present in a coordinate bin.
 
             as_center_bin: bool (default=False)
-                Whether or not to use the center of bins for plots requiring binned statistics rather than the endpoints.
-                Used in contour plots but not heatmaps.
+                Whether or not to use the center of bins for plots requiring binned statistics rather than the
+                endpoints. Used in contour plots but not heatmaps.
 
             zorder: float (default=20)
                 Determines which rink features the plot will draw over.
@@ -1128,7 +1128,6 @@ class BaseRinkPlot(BaseRink):
         x, y, values=None,
         nbins=10, binsize=None,
         reduce_fn=np.mean, fill_value=0,
-        as_center_bin=True,
         ax=None,
         clip_to_boards=True, update_display_range=False,
         plot_range=None, plot_xlim=None, plot_ylim=None,
@@ -1273,7 +1272,7 @@ class BaseRinkPlot(BaseRink):
             use_rink_coordinates,
             nbins, binsize,
             reduce_fn, fill_value,
-            as_center_bin,
+            True,
             zorder,
             x=x, y=y, values=values,
             **kwargs,
