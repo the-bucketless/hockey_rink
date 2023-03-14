@@ -546,14 +546,18 @@ class BaseRinkPlot(BaseRink):
         position_args = position_args or []
         args = [kwargs.pop(arg) for arg in position_args]
 
+        pre_children = ax.get_children()
+
         if is_ax_fn:
             plot_image = fn(*args, **kwargs)
         else:
             plot_image = fn(*args, **kwargs, ax=ax)
 
+        plot_features = [child for child in ax.get_children() if child not in pre_children]
+
         # Have to use set_clip_path because including clip_path in above updates axis limits.
         if clip_to_boards:
-            self.clip_plot(plot_image, ax, plot_range, plot_xlim, plot_ylim)
+            self.clip_plot(plot_features, ax, plot_range, plot_xlim, plot_ylim)
 
         return plot_image
 
