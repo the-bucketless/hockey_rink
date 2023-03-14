@@ -573,7 +573,7 @@ class NWHLRink(NHLRink):
         return features
 
 
-class IIHFRink(Rink):
+class OldIIHFRink(Rink):
     def __init__(
         self,
         rotation=0, x_shift=0, y_shift=0, alpha=None, linewidth=None,
@@ -634,5 +634,50 @@ class IIHFRink(Rink):
         }
 
         features["crease_notch"] = {**crease_notch, **features.get("crease_notch", {})}
+
+        return features
+
+
+class IIHFRink(NHLRink):
+    def __init__(
+        self,
+        rotation=0, x_shift=0, y_shift=0, alpha=None, linewidth=None,
+        line_thickness=1 / 6, line_color="red", line_zorder=5,
+        x_dot_to_lines=2, y_dot_to_lines=9 / 12, goal_line_to_dot=22,
+        boards=None,
+        **features,
+    ):
+        boards = boards or {}
+        boards["length"] = boards.get("length", 197)
+        boards["width"] = boards.get("width", 98.4)
+
+        super().__init__(
+            rotation, x_shift, y_shift, alpha, linewidth,
+            line_thickness, line_color, line_zorder,
+            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot,
+            boards,
+            **features,
+        )
+
+    def _compute_feature_params(
+        self,
+        features,
+        line_thickness, line_color, line_zorder,
+        x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+    ):
+        half_goal_line_thickness = features.get("goal_line", {}).get("length", line_thickness) / 2
+
+        feature_defaults = {
+            "nzone": {"length": 49.2},
+            "goal_line": {"x": self._boards.length / 2 - 13.1 + half_goal_line_thickness},
+        }
+
+        features = self._merge_params(features, feature_defaults)
+
+        features = super()._compute_feature_params(
+            features,
+            line_thickness, line_color, line_zorder,
+            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+        )
 
         return features
