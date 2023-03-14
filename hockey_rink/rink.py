@@ -7,7 +7,7 @@ from itertools import product
 import numpy as np
 
 
-__all__ = ["Rink", "NHLRink", "NWHLRink", "IIHFRink"]
+__all__ = ["Rink", "NHLRink", "NWHLRink", "IIHFRink", "OldIIHFRink"]
 
 
 class Rink(BaseRinkPlot):
