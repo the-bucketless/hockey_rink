@@ -17,7 +17,7 @@ The following rinks are available for use:
 ## Customization
 There is also room for customization. For example, to change the dimension of a rink, update the length and/or width of the boards:
 
-```rink = Rink(boards={"length": 150, "width": 150, "radius": 75})```
+```rink = Rink(boards={"length": 150, "width": 150, "radius": 75})```  
 ![](images/circular-rink.png)
 
 Each rink comes with a default set of features, but additional features can be added. Custom features should inherit 
