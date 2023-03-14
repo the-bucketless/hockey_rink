@@ -570,8 +570,8 @@ class BaseRinkPlot(BaseRink):
         """ Wrapper for matplotlib scatter function.
 
         Parameters:
-            x: array-like
-            y: array-like
+            x: array-like or keys in data
+            y: array-like or keys in data
 
             ax: matplotlib Axes (optional)
                 If not provided, will use the currently active Axes.
@@ -657,8 +657,8 @@ class BaseRinkPlot(BaseRink):
         """ Wrapper for matplotlib plot function.
 
         Parameters:
-            x: array-like
-            y: array-like
+            x: array-like or keys in data
+            y: array-like or keys in data
 
             fmt: str (optional)
                 A format string. See https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html for details.
@@ -757,25 +757,25 @@ class BaseRinkPlot(BaseRink):
         Allows for arrow endpoints to be recorded as either delta values (dx, dy) or coordinates (x2, y2).
 
         Parameters:
-            x: array-like
+            x: array-like or keys in data
                 The x-coordinates of the base of the arrows.
 
-            y: array-like
+            y: array-like or keys in data
                 The y-coordinates of the base of the arrows.
 
-            dx: array-like (optional)
+            dx: array-like or keys in data (optional)
                 The length of the arrow in the x direction.
                 One of dx and x2 has to be specified.
 
-            dy: array-like (optional)
+            dy: array-like or keys in data (optional)
                 The length of the arrow in the y direction.
                 One of dy and y2 has to be specified.
 
-            x2: array-like (optional)
+            x2: array-like or keys in data (optional)
                 The endpoint of the arrow.
                 One of dx and x2 has to be specified.
 
-            y2: array-like (optional)
+            y2: array-like or keys in data (optional)
                 The endpoint of the arrow.
                 One of dy and y2 has to be specified.
 
@@ -886,8 +886,8 @@ class BaseRinkPlot(BaseRink):
         """ Wrapper for matplotlib hexbin function.
 
         Parameters:
-            x: array-like
-            y: array-like
+            x: array-like or keys in data
+            y: array-like or keys in data
 
             ax: matplotlib Axes (optional)
                 If not provided, will use the currently active Axes.
@@ -991,6 +991,8 @@ class BaseRinkPlot(BaseRink):
     ):
         """ Wrapper for matplotlib pcolormesh function.
 
+        It's generally best to include a plot_range to ensure the area is accessed.
+
         Will attempt to create the bins based on the parameters. If the bins have already been set, this can be
         skipped by setting nbins to None.
             ie) rink.heatmap(xbins, ybins, values, nbins=None)
@@ -998,10 +1000,10 @@ class BaseRinkPlot(BaseRink):
         Only x, y, and values will be looked for in the data parameter, if provided.
 
         Parameters:
-            x: array-like
-            y: array-like
+            x: array-like or keys in data
+            y: array-like or keys in data
 
-            values: array_like (optional)
+            values: array_like or keys in data (optional)
                 If None, values of 1 will be assigned to each coordinate.
 
             nbins: int or (int, int) (optional)
@@ -1140,6 +1142,8 @@ class BaseRinkPlot(BaseRink):
 
         contourf can be accessed by setting fill to True.
 
+        It's generally best to include a plot_range to ensure the area is accessed.
+
         Will attempt to create the bins based on the parameters. If the bins have already been set, this can be
         skipped by setting nbins to None.
             ie) rink.contour(xbins, ybins, values, nbins=None)
@@ -1150,10 +1154,10 @@ class BaseRinkPlot(BaseRink):
         Only x, y, and values will be looked for in the data parameter, if provided.
 
         Parameters:
-            x: array-like
-            y: array-like
+            x: array-like or keys in data
+            y: array-like or keys in data
 
-            values: array_like (optional)
+            values: array_like or keys in data (optional)
                 If None, values of 1 will be assigned to each coordinate.
 
             nbins: int or (int, int) (optional)
@@ -1307,10 +1311,10 @@ class BaseRinkPlot(BaseRink):
         Only x, y, and s will be looked for in the data parameter, if provided.
 
         Parameters:
-            x: array-like
-            y: array-like
+            x: array-like or keys in data
+            y: array-like or keys in data
 
-            s: array-like
+            s: array-like or keys in data
                 The text. Multiple texts can be included with multiple coordinates.
 
             ax: matplotlib Axes (optional)
