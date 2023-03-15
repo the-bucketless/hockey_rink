@@ -46,12 +46,15 @@ There's also a rink.plot_fn which will take as its first argument a plotting met
 and will attempt to make the desired plot.
   
 ```
-from hockey_rink import NHLRink
+from hockey_rink import NHLRink, RinkImage
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-df = pd.read_parquet("https://github.com/sportsdataverse/fastRhockey-data/blob/main/nhl/pbp/parquet/play_by_play_2023.parquet?raw=true")
+shots = (
+    pd.read_parquet("https://github.com/sportsdataverse/fastRhockey-data/blob/main/nhl/pbp/parquet/play_by_play_2023.parquet?raw=true")
+    .query("event_type in ('GOAL', 'SHOT', 'MISS')")
+)
 
 team_colors = {"San Jose Sharks": (0, 0.5, 0.5), "Nashville Predators": (1, 0.7, 0.1)}
 
@@ -70,11 +73,11 @@ rink = NHLRink(
     }
 )
 
-first_period = df.query("game_id == 2022020001 and event_type in ('GOAL', 'SHOT', 'MISS') and period == 1")
+first_period = shots.query("game_id == 2022020001 and period == 1")
 
 fig, axs = plt.subplots(1, 2, figsize=(18, 8))
 rink.scatter("x", "y", facecolor=first_period.event_team.map(team_colors), s=100, edgecolor="white", data=first_period, ax=axs[0])
-rink.plot_fn(sns.scatterplot, x="x", y="y", hue="event_team", s=100, legend=False, data=first_period, ax=axs[1], palette=team_colors)
+rink.plot_fn(sns.scatterplot, x="x", y="y", hue="event_team", s=100, legend=False, data=first_period, ax=axs[1], palette=team_colors);
 ```
 ![](images/scatter.png)
 
