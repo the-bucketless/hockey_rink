@@ -21,6 +21,6 @@ setup(
     author_email="thebucketless@protonmail.com",
     license="GNU General Public License v3 (GPLv3)",
     packages=find_packages(),
-    install_requires=["matplotlib", "numpy", "scipy"],
+    install_requires=["matplotlib", "numpy", "pillow"],
     zip_safe=False,
 )
