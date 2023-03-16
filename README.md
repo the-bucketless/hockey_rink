@@ -3,7 +3,7 @@
 A Python library for plotting hockey rinks with Matplotlib.
 
 ## Installation
-```pip install hockey_rink```
+```pip install hockey-rink```
 
 ## Current Rinks
 
