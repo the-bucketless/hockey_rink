@@ -60,7 +60,8 @@ class BaseRink(ABC):
         boards = boards or {}
         if linewidth is not None:
             boards["linewidth"] = linewidth
-        self._boards = Boards(alpha=alpha, **boards)
+        boards["alpha"] = boards.get("alpha", alpha)
+        self._boards = Boards(**boards)
 
         self._features = {}
         self._feature_xlim, self._feature_ylim = self._boards.get_limits()
