@@ -553,10 +553,9 @@ class BaseRinkPlot(BaseRink):
         else:
             plot_image = fn(*args, **kwargs, ax=ax)
 
-        plot_features = [child for child in ax.get_children() if child not in pre_children]
-
         # Have to use set_clip_path because including clip_path in above updates axis limits.
         if clip_to_boards:
+            plot_features = [child for child in ax.get_children() if child not in pre_children]
             self.clip_plot(plot_features, ax, plot_range, plot_xlim, plot_ylim)
 
         return plot_image
@@ -991,6 +990,9 @@ class BaseRinkPlot(BaseRink):
         hexagon = img.get_paths()[0]
         hexagon.vertices = rotation.transform(hexagon.vertices)
         img.set_offsets(transform.transform(img.get_offsets()))
+
+        if clip_to_boards:
+            self.clip_plot(img, ax, plot_range, plot_xlim, plot_ylim)
 
         return img
 
