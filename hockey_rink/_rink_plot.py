@@ -1309,7 +1309,7 @@ class BaseRinkPlot(BaseRink):
         return img
 
     def contourf(self, *args, **kwargs):
-        """ Wrapper for matplotlib contourf functions.
+        """ Wrapper for matplotlib contourf function.
         Full documentation can be found in coutour function.
         """
         kwargs["fill"] = kwargs.pop("fill", True)
