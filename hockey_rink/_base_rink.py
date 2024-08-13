@@ -241,7 +241,7 @@ class BaseRink(ABC):
 
         return x.reshape(shape_x), y.reshape(shape_y)
 
-    def draw(self, ax=None, figsize=None, display_range="full", xlim=None, ylim=None, rotation=None):
+    def draw(self, ax=None, figsize=None, display_range="full", xlim=None, ylim=None, rotation=None, despine=True):
         """ Draw the rink.
 
         Parameters:
@@ -288,6 +288,9 @@ class BaseRink(ABC):
                 0 corresponds to a horizontal rink with largest x and y-coordinates in the top right quadrant.
                 90 will rotate so that the largest coordinates are in the top left quadrant.
 
+            despine: bool (default=True)
+                When True, removes the x and y-axes as well as all spines.
+
         Returns:
             matplotlib Axes
         """
@@ -302,10 +305,11 @@ class BaseRink(ABC):
         self._rotations[ax] = Affine2D().rotate_deg(rotation)
 
         ax.set_aspect("equal")
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
-        for spine in ax.spines.values():
-            spine.set_visible(False)
+        if despine:
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+            for spine in ax.spines.values():
+                spine.set_visible(False)
 
         # Maintain the potentially unshifted version of xlim and ylim. Use the centered version for features.
         if display_range != "full" or xlim is not None or ylim is not None:
