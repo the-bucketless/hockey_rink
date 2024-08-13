@@ -305,44 +305,44 @@ class BaseRinkPlot(BaseRink):
             except TypeError:
                 nbins = [nbins]
 
-            xbins = np.linspace(*xlim, nbins[0] + 1)
-            ybins = np.linspace(*ylim, nbins[-1] + 1)
-        else:
-            try:
-                iter(binsize)
-            except TypeError:
-                binsize = [binsize]
+            # Center binned data needs the same number of bins as the x and y shapes.
+            # Otherwise, need an additional dimension to get the extremities of each bin.
+            binsize = [
+                (xlim[1] - xlim[0]) / (nbins[0] - as_center_bin),
+                (ylim[1] - ylim[0]) / (nbins[-1] - as_center_bin),
+            ]
 
-            xbins = np.arange(xlim[0], xlim[1] + binsize[0], binsize[0])
-            ybins = np.arange(ylim[0], ylim[1] + binsize[-1], binsize[-1])
+        try:
+            iter(binsize)
+        except TypeError:
+            binsize = [binsize]
 
-        # Add an extra bins to the start and end when centering.
-        delta_x = xbins[1] - xbins[0]
-        delta_y = ybins[1] - ybins[0]
+        xbins = np.arange(xlim[0], xlim[1] + binsize[0], binsize[0])
+        ybins = np.arange(ylim[0], ylim[1] + binsize[-1], binsize[-1])
+
+        # Ensure nbins is set when only binsize is specified.
+        nbins = [len(xbins) - 1 + as_center_bin, len(ybins) - 1 + as_center_bin]
+
         if as_center_bin:
-            xbins = np.concatenate([xbins[0] - delta_x, xbins, xbins[-1] + delta_x], axis=None)
-            ybins = np.concatenate([ybins[0] - delta_y, ybins, ybins[-1] + delta_y], axis=None)
+            # When center binning, want to find which coordinates are closest to each bin coordinate. This is the same
+            # as finding which coordinates are smaller than the middle of adjacent coordinates.
+            x_binnumbers = np.searchsorted((xbins[1:] + xbins[:-1]) / 2, x)
+            y_binnumbers = np.searchsorted((ybins[1:] + ybins[:-1]) / 2, y)
+        else:
+            # When not center binning, want to find which coordinates are between adjacent binning coordinates.
+            # Clipping handles the cases where the coordinates are equal to the outer extremities and subtracting
+            # pushes everything to the left, which should be the correct bin.
+            x_binnumbers = np.clip(np.searchsorted(xbins, x), 1, nbins[0]) - 1
+            y_binnumbers = np.clip(np.searchsorted(ybins, y), 1, nbins[-1]) - 1
 
-        n_xbins = len(xbins) - 1
-        n_ybins = len(ybins) - 1
-
-        # By default, side="left" which forces values from lower bound into bin by themselves. Clip to push them into
-        # 1st bin instead of 0th and subtract 1 to get correct number of bins.
-        x_binnumbers = np.clip(np.searchsorted(xbins, x), 1, None) - 1
-        y_binnumbers = np.clip(np.searchsorted(ybins, y), 1, None) - 1
-
-        # matplotlib functions are y, x instead of x, y.
-        result = np.full((n_ybins, n_xbins), fill_value, dtype="float")
-        for i in range(n_xbins):
-            for j in range(n_ybins):
+        # Matplotlib functions are y, x instead of x, y.
+        result = np.full((nbins[-1], nbins[0]), fill_value, dtype="float")
+        for i in range(nbins[0]):
+            for j in range(nbins[-1]):
                 group_vals = values[(x_binnumbers == i) & (y_binnumbers == j)]
 
                 if group_vals.size:
                     result[j, i] = reduce_fn(group_vals)
-
-        if as_center_bin:
-            xbins = (xbins[1:] + xbins[:-1]) / 2
-            ybins = (ybins[1:] + ybins[:-1]) / 2
 
         return result, xbins, ybins
 
