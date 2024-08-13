@@ -183,6 +183,81 @@ class BaseRinkPlot(BaseRink):
         ax.set_xlim(*xlim)
         ax.set_ylim(*ylim)
 
+    def _get_bins(self, xlim, ylim, nbins=10, binsize=None, as_center_bin=False):
+        """ Determine the bin coordinates for bi-dimensional binned statistics.
+
+        Parameters:
+            xlim: (float, float)
+                The outer limits of the x-coordinates for plotting.
+
+            ylim: (float, float)
+                The outer limits of the y-coordinates for plotting.
+
+            nbins: int or (int, int) (optional)
+                The number of bins.
+
+                The first int will be the number of bins used in the x direction and the second in the y. If only one
+                value provided, it will be used for both.
+
+                Will be ignored if binsize is not None.
+                If nbins and binsize are both None, no bins will be computed.
+
+            binsize: float or (float, float) (optional)
+                The size of the bins.
+
+                The first float will be the size of the bins in the x direction and the second in the y. If only one
+                value provided, it will be used for both.
+
+                If the binsize does not evenly divide the plotting region, the excess space is removed equally from
+                the first and last bins.
+
+                If not None, the nbins parameter will be ignored.
+                If nbins and binsize are both None, no bins will be computed.
+
+            as_center_bin: bool (default=False)
+                Whether or not to use the center of bins rather than the endpoints.
+
+        Returns:
+            xbins: np.array
+                The x-coordinates for the bins.
+
+            ybins: np.array
+                The y-coordinates for the bins.
+        """
+
+        if binsize is None:
+            if nbins is None:
+                return None, None
+
+            try:
+                iter(nbins)
+            except TypeError:
+                nbins = [nbins]
+
+            # Center binned data needs the same number of bins as the x and y shapes.
+            # Otherwise, need an additional dimension.
+            binsize = [
+                (xlim[1] - xlim[0]) / (nbins[0] - as_center_bin),
+                (ylim[1] - ylim[0]) / (nbins[-1] - as_center_bin),
+            ]
+
+        try:
+            iter(binsize)
+        except TypeError:
+            binsize = [binsize]
+
+        # When bins are larger than the plotting region, split excess between first and last bin.
+        dx = xlim[1] - xlim[0]
+        x_eps = (binsize[0] * np.ceil(dx / binsize[0]) - dx) / 2
+
+        dy = ylim[1] - ylim[0]
+        y_eps = (binsize[-1] * np.ceil(dy / binsize[-1]) - dy) / 2
+
+        return (
+            np.arange(xlim[0] - x_eps, xlim[1] + binsize[0] / 2 + x_eps, binsize[0]),
+            np.arange(ylim[0] - y_eps, ylim[1] + binsize[-1] / 2 + y_eps, binsize[-1]),
+        )
+
     def binned_statistic_2d(
         self,
         x, y, values,
@@ -193,15 +268,16 @@ class BaseRinkPlot(BaseRink):
     ):
         """ Compute a bi-dimensional binned statistic.
 
-        When creating centered bins, by default, two extra bins are created to enforce symmetry when flipping
-        coordinates. Though, there may still be minor differences as a result of coordinate cutoffs (< vs <=).
-
         Parameters:
             x: array-like
+                If nbins and binsize are both None, will be the x-coordinates for the bins.
+
             y: array-like
+                If nbins and binsize are both None, will be the y-coordinates for the bins.
 
             values: array_like (optional)
                 If None, values of 1 will be assigned to each coordinate.
+                If multidimensional, will be used as the bin values.
 
             nbins: int or (int, int) (optional)
                 The number of bins.
@@ -209,7 +285,8 @@ class BaseRinkPlot(BaseRink):
                 The first int will be the number of bins used in the x direction and the second in the y. If only one
                 value provided, it will be used for both.
 
-                Will be ignored if binsize is not None. At least one of nbins and binsize must be provided.
+                Will be ignored if binsize is not None.
+                If nbins and binsize are both None, x and y will be used as the bin coordinates.
 
             binsize: float or (float, float) (optional)
                 The size of the bins.
@@ -217,7 +294,11 @@ class BaseRinkPlot(BaseRink):
                 The first float will be the size of the bins in the x direction and the second in the y. If only one
                 value provided, it will be used for both.
 
-                At least one of nbins and binsize must be provided.
+                If the binsize does not evenly divide the plotting region, the excess space is removed equally from
+                the first and last bins.
+
+                If not None, the nbins parameter will be ignored.
+                If nbins and binsize are both None, x and y will be used as the bin coordinates.
 
             reduce_fn: str or callable (default np.mean)
                 The function used on the binned statistics.
@@ -266,6 +347,16 @@ class BaseRinkPlot(BaseRink):
 
                 Note that plot_ylim only affects what portion is plotted. Coordinates outside the range can still
                 impact what is shown.
+
+        Returns:
+            statistic: np.array
+                The values of the selected statistic in each bin.
+
+            xbins: np.array
+                The x-coordinates for the bins.
+
+            ybins: np.array
+                The y-coordinates for the bins.
         """
 
         values = np.ones_like(x) if values is None else np.array(values)
@@ -299,26 +390,15 @@ class BaseRinkPlot(BaseRink):
             xlim = [x + self.x_shift for x in xlim]
             ylim = [y + self.y_shift for y in ylim]
 
-        if binsize is None:
-            try:
-                iter(nbins)
-            except TypeError:
-                nbins = [nbins]
+        xbins, ybins = self._get_bins(xlim, ylim, nbins, binsize, as_center_bin)
+        if xbins is None:
+            # If nbins and binsize are None, assume x and y are the bins.
+            xbins = x
+            ybins = y
 
-            # Center binned data needs the same number of bins as the x and y shapes.
-            # Otherwise, need an additional dimension to get the extremities of each bin.
-            binsize = [
-                (xlim[1] - xlim[0]) / (nbins[0] - as_center_bin),
-                (ylim[1] - ylim[0]) / (nbins[-1] - as_center_bin),
-            ]
-
-        try:
-            iter(binsize)
-        except TypeError:
-            binsize = [binsize]
-
-        xbins = np.arange(xlim[0], xlim[1] + binsize[0], binsize[0])
-        ybins = np.arange(ylim[0], ylim[1] + binsize[-1], binsize[-1])
+        # If values isn't 1D, assume it's intended to be the bin values.
+        if len(values.shape) > 1:
+            return values, xbins, ybins
 
         # Ensure nbins is set when only binsize is specified.
         nbins = [len(xbins) - 1 + as_center_bin, len(ybins) - 1 + as_center_bin]
@@ -476,8 +556,7 @@ class BaseRinkPlot(BaseRink):
                 The first int will be the number of bins used in the x direction and the second in the y. If only one
                 value provided, it will be used for both.
 
-                Will be ignored if binsize is not None. At least one of nbins and binsize must be provided for plots
-                that required binned statistics.
+                Will be ignored if binsize is not None.
 
             binsize: float or (float, float) (optional)
                 The size of bins in plots requiring binned statistics (eg heatmap, contour).
@@ -485,7 +564,8 @@ class BaseRinkPlot(BaseRink):
                 The first float will be the size of the bins in the x direction and the second in the y. If only one
                 value provided, it will be used for both.
 
-                At least one of nbins and binsize must be provided for plots that require binned statistics.
+                If the binsize does not evenly divide the plotting region, the excess space is removed equally from
+                the first and last bins.
 
             reduce_fn: str or callable (default np.mean)
                 The function to use on binned statistics.
@@ -1021,10 +1101,14 @@ class BaseRinkPlot(BaseRink):
 
         Parameters:
             x: array-like or key in data
+                If nbins and binsize are both None, will be the x-coordinates for the bins.
+
             y: array-like or key in data
+                If nbins and binsize are both None, will be the y-coordinates for the bins.
 
             values: array_like or key in data (optional)
                 If None, values of 1 will be assigned to each coordinate.
+                If multidimensional, will be used as the bin values.
 
             nbins: int or (int, int) (optional)
                 The number of bins.
@@ -1032,8 +1116,8 @@ class BaseRinkPlot(BaseRink):
                 The first int will be the number of bins used in the x direction and the second in the y. If only one
                 value provided, it will be used for both.
 
-                Will be ignored if binsize is not None. At least one of nbins and binsize must be provided unless
-                x and y are the bins to be used.
+                Will be ignored if binsize is not None.
+                If nbins and binsize are both None, x and y will be used as the bin coordinates.
 
             binsize: float or (float, float) (optional)
                 The size of the bins.
@@ -1041,7 +1125,11 @@ class BaseRinkPlot(BaseRink):
                 The first float will be the size of the bins in the x direction and the second in the y. If only one
                 value provided, it will be used for both.
 
-                At least one of nbins and binsize must be provided unless x and y are the bins to be used.
+                If the binsize does not evenly divide the plotting region, the excess space is removed equally from
+                the first and last bins.
+
+                If not None, the nbins parameter will be ignored.
+                If nbins and binsize are both None, x and y will be used as the bin coordinates.
 
             reduce_fn: str or callable (default np.mean)
                 The function used on the binned statistics.
@@ -1174,10 +1262,14 @@ class BaseRinkPlot(BaseRink):
 
         Parameters:
             x: array-like or key in data
+                If nbins and binsize are both None, will be the x-coordinates for the bins.
+
             y: array-like or key in data
+                If nbins and binsize are both None, will be the y-coordinates for the bins.
 
             values: array_like or key in data (optional)
                 If None, values of 1 will be assigned to each coordinate.
+                If multidimensional, will be used as the bin values.
 
             nbins: int or (int, int) (optional)
                 The number of bins.
@@ -1185,8 +1277,8 @@ class BaseRinkPlot(BaseRink):
                 The first int will be the number of bins used in the x direction and the second in the y. If only one
                 value provided, it will be used for both.
 
-                Will be ignored if binsize is not None. At least one of nbins and binsize must be provided unless
-                x and y are the bins to be used.
+                Will be ignored if binsize is not None.
+                If nbins and binsize are both None, x and y will be used as the bin coordinates.
 
             binsize: float or (float, float) (optional)
                 The size of the bins.
@@ -1194,7 +1286,11 @@ class BaseRinkPlot(BaseRink):
                 The first float will be the size of the bins in the x direction and the second in the y. If only one
                 value provided, it will be used for both.
 
-                At least one of nbins and binsize must be provided unless x and y are the bins to be used.
+                If the binsize does not evenly divide the plotting region, the excess space is removed equally from
+                the first and last bins.
+
+                If not None, the nbins parameter will be ignored.
+                If nbins and binsize are both None, x and y will be used as the bin coordinates.
 
             reduce_fn: str or callable (default np.mean)
                 The function used on the binned statistics.
