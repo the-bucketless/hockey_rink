@@ -970,6 +970,8 @@ class BaseRinkPlot(BaseRink):
     ):
         """ Wrapper for matplotlib hexbin function.
 
+        The number of hexagons can be specified with the gridsize parameter even though it isn't explicitly listed.
+
         Parameters:
             x: array-like or key in data
             y: array-like or key in data
@@ -1042,13 +1044,11 @@ class BaseRinkPlot(BaseRink):
             ax = plt.gca()
 
         values = kwargs.get("C", values)
+        transform = kwargs.get("transform", None)
 
         # Default to sum instead of mean when values not provided.
         if values is None:
             kwargs["reduce_C_function"] = kwargs.get("reduce_C_function", np.sum)
-
-        transform = self.get_plot_transform(ax, kwargs.get("transform"), False)
-        rotation = self._rotations.get(ax, Affine2D().rotate_deg(self.rotation))
 
         # Newer versions of hexbin don't rotate the position of the hexagons.
         # Need to delay application of transform until after drawing hexbin.
@@ -1064,6 +1064,8 @@ class BaseRinkPlot(BaseRink):
         )
 
         kwargs.pop("transform")
+        transform = self.get_plot_transform(ax, transform, False)
+        rotation = self._rotations.get(ax, Affine2D().rotate_deg(self.rotation))
 
         img = ax.hexbin(**kwargs)
 
@@ -1071,6 +1073,9 @@ class BaseRinkPlot(BaseRink):
         hexagon = img.get_paths()[0]
         hexagon.vertices = rotation.transform(hexagon.vertices)
         img.set_offsets(transform.transform(img.get_offsets()))
+
+        if clip_to_boards:
+            self.clip_plot(img, ax, plot_range, plot_xlim, plot_ylim)
 
         return img
 
