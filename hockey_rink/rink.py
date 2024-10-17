@@ -37,8 +37,11 @@ class Rink(BaseRinkPlot):
             crease_outline
             crossbar
             net
+            ice (by default, not visible)
             crease_notch (in all but Rink)
             logo (only in NWHLRink)
+
+        The ice is the only feature that, by default, isn't visible. When visible, it draws an image of ice on the rink.
 
     All default features include linewidth to ensure they appear. This also may cause them to be larger relative other
     features than they ought to be. If using larger figure sizes, linewidth on all features can be reduced or set to 0.
