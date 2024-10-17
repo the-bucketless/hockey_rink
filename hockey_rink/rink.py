@@ -551,6 +551,8 @@ class NWHLRink(NHLRink):
         center_radius = features.get("center_circle", {}).get("radius", 15)
         center_thickness = 2
 
+        current_dir = Path(__file__).parent
+
         feature_defaults = {
             "nzone": {
                 "length": 60,
@@ -570,7 +572,7 @@ class NWHLRink(NHLRink):
                 "thickness": center_thickness,
                 "radius": center_radius - center_thickness,
                 "zorder": 11,
-                "image_path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
+                "image_path": current_dir.parent / "images" / "nwhl_logo.png",
             },
             "red_line": {
                 "feature_class": LowerInwardArcRectangle,
