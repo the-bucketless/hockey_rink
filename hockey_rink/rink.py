@@ -5,6 +5,7 @@ from hockey_rink._rink_plot import BaseRinkPlot
 from hockey_rink.rink_feature import *
 from itertools import product
 import numpy as np
+from pathlib import Path
 
 
 __all__ = ["Rink", "NHLRink", "NWHLRink", "IIHFRink", "OldIIHFRink"]
@@ -96,8 +97,11 @@ class Rink(BaseRinkPlot):
             crease_outline
             crossbar
             net
+            ice (by default, not visible)
             crease_notch (in all but Rink)
             logo (only in NWHLRink)
+
+        The ice is the only feature that, by default, isn't visible. When visible, it draws an image of ice on the rink.
 
         Updates to existing features and new features both expect a dict with key/value pairs corresponding to
         RinkFeature attributes. Additionally, features expect a key for the feature_class with a value indicating the
@@ -154,6 +158,7 @@ class Rink(BaseRinkPlot):
 
         The default zorders are:
             1: nzone, ozone, dzone
+            1.5: ice
             2: crease
             5: goal_line, trapezoid, ref_circle, center_circle, faceoff_circle,
                 faceoff_dot, faceoff_lines, crease_outline, net
@@ -252,6 +257,8 @@ class Rink(BaseRinkPlot):
 
         half_length = self._boards.length / 2
         half_width = self._boards.width / 2
+
+        current_dir = Path(__file__).parent
 
         feature_defaults = {
             "nzone": {
@@ -385,7 +392,13 @@ class Rink(BaseRinkPlot):
                 "is_reflected_x": [False, True],
                 "color": "grey",
                 "zorder": 5,
-            }
+            },
+            "ice": {
+                "feature_class": RinkImage,
+                "visible": False,
+                "zorder": 1.5,
+                "image_path": current_dir.parent / "images" / "ice.png",
+            },
         }
 
         # Update any missing values with defaults.
@@ -474,6 +487,9 @@ class Rink(BaseRinkPlot):
             "width",
             features["crossbar"]["width"] + features["crossbar"]["radius"]
         )
+
+        features["ice"]["length"] = features["ice"].get("length", self._boards.length)
+        features["ice"]["width"] = features["ice"].get("width", self._boards.width)
 
         return features
 

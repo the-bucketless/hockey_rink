@@ -950,7 +950,7 @@ class RinkImage(RinkRectangle):
         if image is None:
             try:
                 self.image = np.array(Image.open(urllib.request.urlopen(image_path)))
-            except urllib.error.URLError:
+            except (urllib.error.URLError, ValueError, AttributeError):
                 self.image = plt.imread(image_path)
         else:
             self.image = image
