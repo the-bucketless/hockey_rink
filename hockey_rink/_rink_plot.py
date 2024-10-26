@@ -833,6 +833,7 @@ class BaseRinkPlot(BaseRink):
         plot_range=None, plot_xlim=None, plot_ylim=None,
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
+        width=0.75,
         **kwargs
     ):
         """ Wrapper for matplotlib arrow function.
@@ -914,6 +915,10 @@ class BaseRinkPlot(BaseRink):
             use_rink_coordinates: bool (default=True)
                 Whether or not the plotted features are using the rink's coordinates.
 
+            width: float (default=0.75)
+                Width of full arrow tail.
+                The default is an increase from matplotlib's 0.001 to help ensure arrows are visible.
+
             kwargs: Any other matplotlib arrow properties. (optional)
 
         Returns:
@@ -951,6 +956,7 @@ class BaseRinkPlot(BaseRink):
                 use_rink_coordinates,
                 x=x_, y=y_,
                 dx=dx_, dy=dy_,
+                width=width,
                 **kwargs,
             )
             for x_, y_, dx_, dy_ in zip(x, y, dx, dy)
