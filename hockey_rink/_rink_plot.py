@@ -487,7 +487,7 @@ class BaseRinkPlot(BaseRink):
         as_center_bin=False,
         zorder=20,
         position_args=None,
-        **kwargs
+        **kwargs,
     ):
         """ Wrapper method to be used to call various matplotlib and seaborn plotting functions. Will attempt to apply
         appropriate transformations to the data based on the rink.
@@ -648,7 +648,7 @@ class BaseRinkPlot(BaseRink):
         plot_range=None, plot_xlim=None, plot_ylim=None,
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
-        **kwargs
+        **kwargs,
     ):
         """ Wrapper for matplotlib scatter function.
 
@@ -735,7 +735,7 @@ class BaseRinkPlot(BaseRink):
         plot_range=None, plot_xlim=None, plot_ylim=None,
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
-        **kwargs
+        **kwargs,
     ):
         """ Wrapper for matplotlib plot function.
 
@@ -834,7 +834,7 @@ class BaseRinkPlot(BaseRink):
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
         width=0.75,
-        **kwargs
+        **kwargs,
     ):
         """ Wrapper for matplotlib arrow function.
 
@@ -940,9 +940,9 @@ class BaseRinkPlot(BaseRink):
 
         # Calculate the length of the arrow if not provided.
         if dx is None:
-            dx = x2 - x
+            dx = np.ravel(x2) - x
         if dy is None:
-            dy = y2 - y
+            dy = np.ravel(y2) - y
 
         dx = np.ravel(dx)
         dy = np.ravel(dy)
@@ -971,7 +971,7 @@ class BaseRinkPlot(BaseRink):
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
         zorder=3,
-        **kwargs
+        **kwargs,
     ):
         """ Wrapper for matplotlib hexbin function.
 
@@ -1049,7 +1049,7 @@ class BaseRinkPlot(BaseRink):
             ax = plt.gca()
 
         values = kwargs.get("C", values)
-        transform = kwargs.get("transform", None)
+        transform = kwargs.get("transform")
 
         # Default to sum instead of mean when values not provided.
         if values is None:
@@ -1095,7 +1095,7 @@ class BaseRinkPlot(BaseRink):
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
         zorder=3,
-        **kwargs
+        **kwargs,
     ):
         """ Wrapper for matplotlib pcolormesh function.
 
@@ -1251,7 +1251,7 @@ class BaseRinkPlot(BaseRink):
         use_rink_coordinates=True,
         zorder=3,
         fill=False,
-        **kwargs
+        **kwargs,
     ):
         """ Wrapper for matplotlib contour and contourf functions.
 
@@ -1428,7 +1428,7 @@ class BaseRinkPlot(BaseRink):
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
         zorder=101,
-        **kwargs
+        **kwargs,
     ):
         """ Wrapper for matplotlib text function.
 
