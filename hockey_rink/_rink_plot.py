@@ -939,13 +939,8 @@ class BaseRinkPlot(BaseRink):
         y = np.ravel(y)
 
         # Calculate the length of the arrow if not provided.
-        if dx is None:
-            dx = np.ravel(x2) - x
-        if dy is None:
-            dy = np.ravel(y2) - y
-
-        dx = np.ravel(dx)
-        dy = np.ravel(dy)
+        dx = np.ravel(x2) - x if dx is None else np.ravel(dx)
+        dy = np.ravel(y2) - y if dy is None else np.ravel(dy)
 
         return [
             self.plot_fn(
