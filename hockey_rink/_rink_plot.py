@@ -159,7 +159,13 @@ class BaseRinkPlot(BaseRink):
 
         clip_path = self.get_clip_path(ax, plot_range, plot_xlim, plot_ylim)
         for plot_feature in np.ravel(plot_features):
-            plot_feature.set_clip_path(clip_path)
+            feature_bbox = plot_feature.get_window_extent()
+            clip_bbox = clip_path.get_extents()
+
+            if clip_bbox.overlaps(feature_bbox):
+                plot_feature.set_clip_path(clip_path)
+            else:
+                plot_feature.remove()
 
     def _update_display_range(self, ax, **kwargs):
         """ Update the display range to include the outermost x,y-coordinate. """
