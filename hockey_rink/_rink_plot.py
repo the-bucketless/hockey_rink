@@ -170,6 +170,13 @@ class BaseRinkPlot(BaseRink):
     def _update_display_range(self, ax, **kwargs):
         """ Update the display range to include the outermost x,y-coordinate. """
 
+        kwargs = dict(kwargs)
+
+        # If dx and dy used (eg in arrows), need to calculate end points.
+        if "dx" in kwargs:
+            kwargs["x2"] = kwargs["x"] + kwargs["dx"]
+            kwargs["y2"] = kwargs["y"] + kwargs["dy"]
+
         x_kws = [k for k in kwargs.keys() if re.fullmatch("x([0-9])*", k)]
         y_kws = [k for k in kwargs.keys() if re.fullmatch("y([0-9])*", k)]
 
