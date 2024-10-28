@@ -5,6 +5,7 @@ Not intended for direct use, only as a parent class.
 
 
 from hockey_rink._base_rink import BaseRink
+from hockey_rink.plotting import plot_wavy_arrow
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
@@ -1503,4 +1504,48 @@ class BaseRinkPlot(BaseRink):
                 **kwargs,
             )
             for x_, y_, s_ in zip(np.ravel(x), np.ravel(y), np.ravel(s))
+        ]
+
+    def wavy_arrow(
+        self,
+        x, y,
+        dx=None, dy=None,
+        x2=None, y2=None,
+        ax=None,
+        clip_to_boards=True, update_display_range=False,
+        plot_range=None, plot_xlim=None, plot_ylim=None,
+        skip_draw=False, draw_kw=None,
+        use_rink_coordinates=True,
+        shaft_kw=None,
+        **kwargs,
+    ):
+        data = kwargs.pop("data", None)
+
+        x, y, dx, dy, x2, y2 = [
+            data[var] if isinstance(var, str) else var
+            for var in (x, y, dx, dy, x2, y2)
+        ]
+
+        x = np.ravel(x)
+        y = np.ravel(y)
+
+        # Calculate the length of the arrow if not provided.
+        dx = np.ravel(x2) - x if dx is None else np.ravel(dx)
+        dy = np.ravel(y2) - y if dy is None else np.ravel(dy)
+
+        shaft_kw = shaft_kw or {}
+        shaft_kw["zorder"] = shaft_kw.get("zorder", 20)
+
+        return [
+            self.plot_fn(
+                plot_wavy_arrow,
+                clip_to_boards, update_display_range,
+                plot_range, plot_xlim, plot_ylim,
+                skip_draw, draw_kw,
+                use_rink_coordinates,
+                x=x_, y=y_, dx=dx_, dy=dy_,
+                shaft_kw=shaft_kw,
+                **kwargs,
+            )
+            for x_, y_, dx_, dy_ in zip(x, y, dx, dy)
         ]
