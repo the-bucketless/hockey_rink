@@ -569,7 +569,7 @@ class NHLRink(Rink):
             "is_reflected_y": [False, True],
             "color": line_color,
             "zorder": line_zorder,
-            "visible": features["crease"].get("visible", True),
+            "visible": features["crease_outline"].get("visible", True),
         }
 
         features["crease_notch"] = {**crease_notch, **features.get("crease_notch", {})}
@@ -687,7 +687,7 @@ class OldIIHFRink(Rink):
             "is_reflected_y": [False, True],
             "color": line_color,
             "zorder": line_zorder,
-            "visible": features["crease"].get("visible", True),
+            "visible": features["crease_outline"].get("visible", True),
         }
 
         features["crease_notch"] = {**crease_notch, **features.get("crease_notch", {})}
