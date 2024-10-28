@@ -211,4 +211,4 @@ class WavyArrow:
 
 def plot_wavy_arrow(*args, **kwargs):
     wavy_arrow = WavyArrow()
-    wavy_arrow(*args, **kwargs)
+    return wavy_arrow(*args, **kwargs)
