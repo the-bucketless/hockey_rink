@@ -73,13 +73,13 @@ class RinkFeature(ABC):
             The number of coordinates used in creating arcs.
 
         is_reflected_x: bool
-            Whether or not the x-coordinates are to be reflected.
+            Whether the x-coordinates are to be reflected.
 
         is_reflected_y: bool
-            Whether or not the y-coordinates are to be reflected.
+            Whether the y-coordinates are to be reflected.
 
         visible: bool
-            Whether or not the feature will be drawn.
+            Whether the feature will be drawn.
 
         rotation: float
             Degree to rotate the feature around its x and y-coordinates.
@@ -452,7 +452,7 @@ class TrapezoidLine(RinkFeature):
 
 
 class FaceoffDot(RinkFeature):
-    """ A circle with a section carved out of the each side.
+    """ A circle with a section carved out of each side.
 
     Inherits from RinkFeature.
 
@@ -573,7 +573,7 @@ class Crease(RinkFeature):
 
     Can be used for both the crease (when thickness is 0) and the outline of the crease (when thickness isn't 0).
 
-    Typically a rectangle with an arc at the end, but the rectangle can be removed by setting length to 0.
+    Typically, a rectangle with an arc at the end, but the rectangle can be removed by setting length to 0.
 
     The x attribute is the goal line edge of the crease.
     The y attribute is the center of the crease.
@@ -757,8 +757,7 @@ class RoundedRectangle(RinkFeature):
 
     Inherits from RinkFeature.
 
-    The radius attribute is the radius of the arc for rounded edges. Inappropriate values will lead to
-    unusual shapes.
+    The radius attribute is the radius of the arc for rounded edges. Inappropriate values will lead to unusual shapes.
     """
 
     def get_centered_xy(self):
