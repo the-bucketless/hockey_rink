@@ -164,7 +164,7 @@ class BaseRinkPlot(BaseRink):
 
             if clip_bbox.overlaps(feature_bbox):
                 plot_feature.set_clip_path(clip_path)
-            else:
+            else:    # Remove features entirely outside the clip path.
                 plot_feature.remove()
 
     def _update_display_range(self, ax, **kwargs):
