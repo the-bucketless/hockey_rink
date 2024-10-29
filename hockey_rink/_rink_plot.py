@@ -1518,6 +1518,7 @@ class BaseRinkPlot(BaseRink):
         plot_range=None, plot_xlim=None, plot_ylim=None,
         skip_draw=False, draw_kw=None,
         use_rink_coordinates=True,
+        shaft_zorder=20,
         **kwargs,
     ):
         """ Plots an arrow with a sine wave as the shaft.
@@ -1654,6 +1655,12 @@ class BaseRinkPlot(BaseRink):
                     Additional keyword arguments to be provided to the .plot() or .fill() function specifically for the
                     right arrowhead. Will supersede head_kw.
 
+                shaft_zorder: float (default=20)
+                    Determines which rink features the arrow will draw over.
+
+                    This can also be controlled with shaft_kw. Including a default ensures the arrowhead will be
+                    drawn on top of the shaft when the line of the shaft is made thick enough to overlap the arrowhead.
+
                 Any other properties that can be provided to the plotting functions for both the shaft and the
                 arrowheads.
 
@@ -1679,9 +1686,8 @@ class BaseRinkPlot(BaseRink):
         dy = np.ravel(y2) - y if dy is None else np.ravel(dy)
 
         # Set default shaft zorder so head zorder will update to be on top of shaft.
-        if "shaft_kw" not in kwargs:
-            kwargs["shaft_kw"] = {}
-        kwargs["shaft_kw"]["zorder"] = kwargs["shaft_kw"].get("zorder", 20)
+        kwargs["shaft_kw"] = kwargs.get(kwargs["shaft_kw"], {})
+        kwargs["shaft_kw"]["zorder"] = kwargs["shaft_kw"].get("zorder", shaft_zorder)
 
         return [
             self.plot_fn(
