@@ -218,7 +218,7 @@ class BaseRink(ABC):
 
     def _rotate_xy(self, x, y, ax=None):
         """ Rotate x,y-coordinates based on the Axes object. If no Axes provided, uses the rink's default rotation. """
-        rotation = Affine2D().rotate_deg(self.rotation) if ax is None else self._rotations[ax]
+        rotation = self._rotations.get(ax, Affine2D().rotate_deg(self.rotation))
         xy = rotation.transform(tuple(zip(x, y)))
         return xy[:, 0], xy[:, 1]
 
