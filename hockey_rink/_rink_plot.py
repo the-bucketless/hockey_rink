@@ -1686,7 +1686,7 @@ class BaseRinkPlot(BaseRink):
         dy = (np.ravel(y2) - y) if dy is None else np.ravel(dy)
 
         # Set default shaft zorder so head zorder will update to be on top of shaft.
-        kwargs["shaft_kw"] = kwargs.get(kwargs["shaft_kw"], {})
+        kwargs["shaft_kw"] = kwargs.get("shaft_kw", {})
         kwargs["shaft_kw"]["zorder"] = kwargs["shaft_kw"].get("zorder", shaft_zorder)
 
         return [
