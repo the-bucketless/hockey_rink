@@ -5,12 +5,13 @@ from hockey_rink._rink_plot import BaseRinkPlot
 from hockey_rink.rink_feature import *
 from itertools import product
 import numpy as np
+from pathlib import Path
 
 
-__all__ = ["Rink", "NHLRink", "NWHLRink", "IIHFRink", "OldIIHFRink"]
+__all__ = ["BlankRink", "Rink", "NHLRink", "NWHLRink", "IIHFRink", "OldIIHFRink"]
 
 
-class Rink(BaseRinkPlot):
+class BlankRink(BaseRinkPlot):
     """ Rink to draw and plot on with matplotlib.
 
     Allows for customization to support any number of different possible rink dimensions.
@@ -36,8 +37,11 @@ class Rink(BaseRinkPlot):
             crease_outline
             crossbar
             net
+            ice (by default, not visible)
             crease_notch (in all but Rink)
             logo (only in NWHLRink)
+
+        The ice is the only feature that, by default, isn't visible. When visible, it draws an image of ice on the rink.
 
     All default features include linewidth to ensure they appear. This also may cause them to be larger relative other
     features than they ought to be. If using larger figure sizes, linewidth on all features can be reduced or set to 0.
@@ -67,12 +71,12 @@ class Rink(BaseRinkPlot):
     """
 
     def __init__(
-        self,
-        rotation=0, x_shift=0, y_shift=0, alpha=None, linewidth=None,
-        line_thickness=1 / 6, line_color="red", line_zorder=5,
-        x_dot_to_lines=2, y_dot_to_lines=9 / 12, goal_line_to_dot=20,
-        boards=None,
-        **features,
+            self,
+            rotation=0, x_shift=0, y_shift=0, alpha=None, linewidth=None,
+            line_thickness=1 / 6, line_color="red", line_zorder=5,
+            x_dot_to_lines=2, y_dot_to_lines=9 / 12, goal_line_to_dot=20,
+            boards=None,
+            **features,
     ):
         """ Initialize and create the features of the rink.
 
@@ -96,8 +100,11 @@ class Rink(BaseRinkPlot):
             crease_outline
             crossbar
             net
+            ice (by default, not visible)
             crease_notch (in all but Rink)
             logo (only in NWHLRink)
+
+        The ice is the only feature that, by default, isn't visible. When visible, it draws an image of ice on the rink.
 
         Updates to existing features and new features both expect a dict with key/value pairs corresponding to
         RinkFeature attributes. Additionally, features expect a key for the feature_class with a value indicating the
@@ -154,6 +161,7 @@ class Rink(BaseRinkPlot):
 
         The default zorders are:
             1: nzone, ozone, dzone
+            1.5: ice
             2: crease
             5: goal_line, trapezoid, ref_circle, center_circle, faceoff_circle,
                 faceoff_dot, faceoff_lines, crease_outline, net
@@ -197,9 +205,13 @@ class Rink(BaseRinkPlot):
                 Thickness of all the thin lines on the ice (eg the goal line and faceoff circles) if not
                 otherwise updated.
 
+                Ignored by BlankRink.
+
             line_color: color (default="red")
                 Color of all the thin lines on the ice (eg the goal line and faceoff circles) if not
                 otherwise updated.
+
+                Ignored by BlankRink.
 
                 An example of how to specify colors can be found at the following link:
                     https://matplotlib.org/stable/tutorials/colors/colors.html#sphx-glr-tutorials-colors-colors-py
@@ -211,14 +223,22 @@ class Rink(BaseRinkPlot):
                 Determines which features are drawn first (lower values will cause features to appear under
                 other features they may overlap).
 
+                Ignored by BlankRink.
+
             x_dot_to_lines: float (default=2)
                 Length-wise distance between a faceoff dot and the L shapes in the faceoff circle.
+
+                Ignored by BlankRink.
 
             y_dot_to_lines: float (default=9/12)
                 Width-wise distance between a faceoff dot and the L shapes in the faceoff circle.
 
+                Ignored by BlankRink.
+
             goal_line_to_dot: float (default=20 except for IIHFRink which is 22)
                 Distance between the goal line and the faceoff dots.
+
+                Ignored by BlankRink.
 
             boards: dict (optional)
                 Attributes to update for the boards.
@@ -234,21 +254,66 @@ class Rink(BaseRinkPlot):
         features = self._compute_feature_params(
             features,
             line_thickness, line_color, line_zorder,
-            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot,
         )
 
         for feature_name, feature_params in features.items():
             self._initialize_feature(feature_name, feature_params, alpha, linewidth)
 
     def _compute_feature_params(
-        self,
-        features,
-        line_thickness, line_color, line_zorder,
-        x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+            self,
+            features,
+            line_thickness, line_color, line_zorder,
+            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot,
+    ):
+        features = features or {}
+
+        current_dir = Path(__file__).parent
+
+        feature_defaults = {
+            "ice": {
+                "feature_class": RinkImage,
+                "visible": False,
+                "zorder": 1.5,
+                "image_path": current_dir.parent / "images" / "ice.png",
+            },
+        }
+
+        # Update any missing values with defaults.
+        features = self._merge_params(features, feature_defaults)
+
+        features["ice"]["length"] = features["ice"].get("length", self._boards.length)
+        features["ice"]["width"] = features["ice"].get("width", self._boards.width)
+
+        return features
+
+    @staticmethod
+    def _merge_params(features, feature_defaults):
+        """ Update missing values in features with defaults. """
+        feature_names = set(features.keys()).union(feature_defaults.keys())
+        return {
+            feature_name: {
+                **feature_defaults.get(feature_name, {}),
+                **features.get(feature_name, {})
+            }
+            for feature_name in feature_names
+        }
+
+
+class Rink(BlankRink):
+    def _compute_feature_params(
+            self,
+            features,
+            line_thickness, line_color, line_zorder,
+            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot,
     ):
         """ Update any missing parameters for features using defaults for this rink. """
 
-        features = features or {}
+        features = super()._compute_feature_params(
+            features,
+            line_thickness, line_color, line_zorder,
+            x_dot_to_lines, y_dot_to_lines, goal_line_to_dot
+        )
 
         half_length = self._boards.length / 2
         half_width = self._boards.width / 2
@@ -385,7 +450,7 @@ class Rink(BaseRinkPlot):
                 "is_reflected_x": [False, True],
                 "color": "grey",
                 "zorder": 5,
-            }
+            },
         }
 
         # Update any missing values with defaults.
@@ -477,18 +542,6 @@ class Rink(BaseRinkPlot):
 
         return features
 
-    @staticmethod
-    def _merge_params(features, feature_defaults):
-        """ Update missing values in features with defaults. """
-        feature_names = set(features.keys()).union(feature_defaults.keys())
-        return {
-            feature_name: {
-                **feature_defaults.get(feature_name, {}),
-                **features.get(feature_name, {})
-            }
-            for feature_name in feature_names
-        }
-
 
 class NHLRink(Rink):
     def _compute_feature_params(
@@ -516,7 +569,7 @@ class NHLRink(Rink):
             "is_reflected_y": [False, True],
             "color": line_color,
             "zorder": line_zorder,
-            "visible": features["crease"].get("visible", True),
+            "visible": features["crease_outline"].get("visible", True),
         }
 
         features["crease_notch"] = {**crease_notch, **features.get("crease_notch", {})}
@@ -534,6 +587,8 @@ class NWHLRink(NHLRink):
         half_width = features.get("boards", {}).get("width", 85) / 2
         center_radius = features.get("center_circle", {}).get("radius", 15)
         center_thickness = 2
+
+        current_dir = Path(__file__).parent
 
         feature_defaults = {
             "nzone": {
@@ -554,7 +609,7 @@ class NWHLRink(NHLRink):
                 "thickness": center_thickness,
                 "radius": center_radius - center_thickness,
                 "zorder": 11,
-                "image_path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
+                "image_path": current_dir.parent / "images" / "nwhl_logo.png",
             },
             "red_line": {
                 "feature_class": LowerInwardArcRectangle,
@@ -632,7 +687,7 @@ class OldIIHFRink(Rink):
             "is_reflected_y": [False, True],
             "color": line_color,
             "zorder": line_zorder,
-            "visible": features["crease"].get("visible", True),
+            "visible": features["crease_outline"].get("visible", True),
         }
 
         features["crease_notch"] = {**crease_notch, **features.get("crease_notch", {})}
