@@ -10,6 +10,8 @@ from pathlib import Path
 
 __all__ = ["BlankRink", "Rink", "NHLRink", "NWHLRink", "IIHFRink", "OldIIHFRink"]
 
+CURRENT_DIR = Path(__file__).resolve().parent
+
 
 class BlankRink(BaseRinkPlot):
     """ Rink to draw and plot on with matplotlib.
@@ -268,14 +270,12 @@ class BlankRink(BaseRinkPlot):
     ):
         features = features or {}
 
-        current_dir = Path(__file__).parent
-
         feature_defaults = {
             "ice": {
                 "feature_class": RinkImage,
                 "visible": False,
                 "zorder": 1.5,
-                "image_path": current_dir.parent / "images" / "ice.png",
+                "image_path": CURRENT_DIR.parent / "images" / "ice.png",
             },
         }
 
@@ -588,8 +588,6 @@ class NWHLRink(NHLRink):
         center_radius = features.get("center_circle", {}).get("radius", 15)
         center_thickness = 2
 
-        current_dir = Path(__file__).parent
-
         feature_defaults = {
             "nzone": {
                 "length": 60,
@@ -609,7 +607,7 @@ class NWHLRink(NHLRink):
                 "thickness": center_thickness,
                 "radius": center_radius - center_thickness,
                 "zorder": 11,
-                "image_path": current_dir.parent / "images" / "nwhl_logo.png",
+                "image_path": CURRENT_DIR.parent / "images" / "nwhl_logo.png",
             },
             "red_line": {
                 "feature_class": LowerInwardArcRectangle,
