@@ -5,12 +5,9 @@ from hockey_rink._rink_plot import BaseRinkPlot
 from hockey_rink.rink_feature import *
 from itertools import product
 import numpy as np
-import os
 
 
 __all__ = ["BlankRink", "Rink", "NHLRink", "NWHLRink", "IIHFRink", "OldIIHFRink"]
-
-current_dir = os.path.dirname(os.path.dirname(__file__))
 
 
 class BlankRink(BaseRinkPlot):
@@ -275,7 +272,7 @@ class BlankRink(BaseRinkPlot):
                 "feature_class": RinkImage,
                 "visible": False,
                 "zorder": 1.5,
-                "image_path": os.path.join(current_dir, "images/ice.png"),
+                "image_path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/ice.png",
             },
         }
 
@@ -607,7 +604,7 @@ class NWHLRink(NHLRink):
                 "thickness": center_thickness,
                 "radius": center_radius - center_thickness,
                 "zorder": 11,
-                "image_path": os.path.join(current_dir, "images/nwhl_logo.png"),
+                "image_path": "https://raw.githubusercontent.com/the-bucketless/hockey_rink/master/images/nwhl_logo.png",
             },
             "red_line": {
                 "feature_class": LowerInwardArcRectangle,
