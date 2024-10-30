@@ -955,8 +955,8 @@ class BaseRinkPlot(BaseRink):
         y = np.ravel(y)
 
         # Calculate the length of the arrow if not provided.
-        dx = np.ravel(x2) - x if dx is None else np.ravel(dx)
-        dy = np.ravel(y2) - y if dy is None else np.ravel(dy)
+        dx = (np.ravel(x2) - x) if dx is None else np.ravel(dx)
+        dy = (np.ravel(y2) - y) if dy is None else np.ravel(dy)
 
         return [
             self.plot_fn(
@@ -1682,8 +1682,8 @@ class BaseRinkPlot(BaseRink):
         y = np.ravel(y)
 
         # Calculate the length of the arrow if not provided.
-        dx = np.ravel(x2) - x if dx is None else np.ravel(dx)
-        dy = np.ravel(y2) - y if dy is None else np.ravel(dy)
+        dx = (np.ravel(x2) - x) if dx is None else np.ravel(dx)
+        dy = (np.ravel(y2) - y) if dy is None else np.ravel(dy)
 
         # Set default shaft zorder so head zorder will update to be on top of shaft.
         kwargs["shaft_kw"] = kwargs.get(kwargs["shaft_kw"], {})
