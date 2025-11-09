@@ -1421,7 +1421,13 @@ class BaseRinkPlot(BaseRink):
         )
 
         if clip_to_boards:
-            self.clip_plot(img.collections, ax, plot_range, plot_xlim, plot_ylim)
+            # The return from contour is a QuadContourSet. Older versions of matplotlib had a collections attribute
+            # in the QuadContourSet that could be iterated over to clip. Newer versions can clip the
+            # QuadContourSet directly.
+            try:
+                self.clip_plot(img.collections, ax, plot_range, plot_xlim, plot_ylim)
+            except AttributeError:
+                self.clip_plot(img, ax, plot_range, plot_xlim, plot_ylim)
 
         return img
 

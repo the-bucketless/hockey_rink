@@ -18,6 +18,14 @@ Available features are:
 """
 
 
+from abc import ABC, abstractmethod
+import matplotlib.pyplot as plt
+from matplotlib.transforms import Affine2D
+import numpy as np
+from PIL import Image
+import urllib
+
+
 __all__ = [
     "RinkFeature",
     "RinkRectangle",
@@ -35,14 +43,6 @@ __all__ = [
     "RinkImage",
     "CircularImage",
 ]
-
-
-from abc import ABC, abstractmethod
-import matplotlib.pyplot as plt
-from matplotlib.transforms import Affine2D
-import numpy as np
-from PIL import Image
-import urllib
 
 
 class RinkFeature(ABC):
